@@ -1,0 +1,173 @@
+/**
+ * Frontend-only mock authentication for CampusOS – FixIt.
+ *
+ * All data lives in localStorage and every OTP is simulated in the UI.
+ * This is demo tooling — never use it to protect real data.
+ */
+
+export type UserRole = "student" | "faculty";
+export type DashboardRole = UserRole | "admin";
+
+export interface NewRegistration {
+  fullName: string;
+  usn: string;
+  email: string;
+  mobile: string;
+  role: UserRole;
+}
+
+export interface RegisteredUser extends NewRegistration {
+  id: string;
+}
+
+export interface AuthSession {
+  name: string;
+  usn: string | null;
+  role: DashboardRole;
+}
+
+/** Predefined frontend demo credentials for the Team 42 administrator portal. */
+export const ADMIN_DEMO = {
+  name: "Team 42 Admin",
+  email: "admin@team42.com",
+  phone: "9000000042",
+  otp: "472719",
+} as const;
+
+export const USN_PATTERN = /^[A-Za-z]{1,4}[0-9]{2}[A-Za-z]{2,4}[0-9]{3}$/;
+export const MOBILE_PATTERN = /^[6-9][0-9]{9}$/;
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export function validateUsn(value: string): string | null {
+  const v = value.trim();
+  if (!v) return "USN is required.";
+  if (!USN_PATTERN.test(v)) return "Enter a valid USN, e.g. 1RV22CS001.";
+  return null;
+}
+
+export function validateEmail(value: string): string | null {
+  const v = value.trim();
+  if (!v) return "Email address is required.";
+  if (!EMAIL_PATTERN.test(v)) return "Enter a valid email address.";
+  return null;
+}
+
+export function validateMobile(value: string): string | null {
+  const v = value.trim().replace(/\s+/g, "");
+  if (!v) return "Mobile number is required.";
+  if (!MOBILE_PATTERN.test(v)) return "Enter a valid 10-digit mobile number.";
+  return null;
+}
+
+export function simulateDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const USERS_KEY = "campusos-fixit:users";
+const SESSION_KEY = "campusos-fixit:session";
+
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key: string, value: unknown): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage unavailable — demo data simply won't persist */
+  }
+}
+
+export function getRegisteredUsers(): RegisteredUser[] {
+  return readJson<RegisteredUser[]>(USERS_KEY, []);
+}
+
+function saveUsers(users: RegisteredUser[]): void {
+  writeJson(USERS_KEY, users);
+}
+
+/** Returns a human-readable conflict message, or null when the details are free. */
+export function findRegistrationConflict(details: NewRegistration): string | null {
+  const users = getRegisteredUsers();
+  const usn = details.usn.trim().toUpperCase();
+  const email = details.email.trim().toLowerCase();
+  const mobile = details.mobile.trim();
+  if (users.some((u) => u.usn.toUpperCase() === usn)) {
+    return "This USN is already registered. Try signing in instead.";
+  }
+  if (users.some((u) => u.email.toLowerCase() === email)) {
+    return "This email address is already registered. Try signing in instead.";
+  }
+  if (users.some((u) => u.mobile === mobile)) {
+    return "This mobile number is already registered. Try signing in instead.";
+  }
+  return null;
+}
+
+export function registerUser(
+  details: NewRegistration,
+): { ok: true; user: RegisteredUser } | { ok: false; error: string } {
+  const conflict = findRegistrationConflict(details);
+  if (conflict) return { ok: false, error: conflict };
+  const user: RegisteredUser = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    fullName: details.fullName.trim(),
+    usn: details.usn.trim().toUpperCase(),
+    email: details.email.trim().toLowerCase(),
+    mobile: details.mobile.trim(),
+    role: details.role,
+  };
+  saveUsers([...getRegisteredUsers(), user]);
+  return { ok: true, user };
+}
+
+export function findUserByLogin(usn: string, contact: string): RegisteredUser | null {
+  const normalizedUsn = usn.trim().toUpperCase();
+  const normalizedContact = contact.trim().toLowerCase().replace(/\s+/g, "");
+  return (
+    getRegisteredUsers().find(
+      (user) =>
+        user.usn.toUpperCase() === normalizedUsn &&
+        (user.email.toLowerCase() === normalizedContact || user.mobile === normalizedContact),
+    ) ?? null
+  );
+}
+
+export function matchesAdminCredentials(email: string, phone: string): boolean {
+  return (
+    email.trim().toLowerCase() === ADMIN_DEMO.email &&
+    phone.trim().replace(/\s+/g, "") === ADMIN_DEMO.phone
+  );
+}
+
+export function otpMatches(expected: string, entered: string): boolean {
+  return entered.trim() === expected;
+}
+
+export function generateOtp(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+export function setSession(session: AuthSession): void {
+  writeJson(SESSION_KEY, session);
+}
+
+export function getSession(): AuthSession | null {
+  return readJson<AuthSession | null>(SESSION_KEY, null);
+}
+
+export function clearSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
