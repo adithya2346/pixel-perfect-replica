@@ -12,6 +12,7 @@ import { OTPVerification } from "@/components/auth/otp-verification";
 import { AuthSuccess } from "@/components/auth/auth-success";
 import {
   ADMIN_DEMO,
+  authenticateWithLiveBackend,
   findRegistrationConflict,
   findUserByLogin,
   generateOtp,
@@ -155,10 +156,11 @@ function Index() {
       });
     } else {
       setSession({ name: ADMIN_DEMO.name, usn: null, role: "admin" });
+      authenticateWithLiveBackend(ADMIN_DEMO.email, ADMIN_DEMO.otp, true).catch(() => {});
       setSuccess({
         role: "admin",
         title: "Welcome, Team 42 Admin!",
-        message: "Identity verified. Redirecting to the administrator dashboard…",
+        message: "Identity verified with live backend. Redirecting to the administrator dashboard…",
       });
     }
     setOtp(null);

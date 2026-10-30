@@ -1,8 +1,11 @@
 /**
- * CampusOS FixIt — Local Mock Store & State Management
+ * CampusOS FixIt — Local Mock Store & Backend Sync
+ * Synchronizes with live backend: https://campus-os-backend-8sjf.onrender.com
  * Implements the full lifecycle of maintenance tickets and issue types
  * according to the FixIt API specs (/api/v1/fixit) and wireframes.
  */
+
+import { apiRequest } from "./api-client";
 
 export type TicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ACKNOWLEDGED";
 
@@ -169,6 +172,25 @@ export function saveIssueTypes(types: IssueType[]): void {
   writeJson(STORAGE_ISSUE_TYPES_KEY, types);
 }
 
+export async function syncIssueTypesFromBackend(): Promise<IssueType[]> {
+  try {
+    const res = await apiRequest<{ items: any[]; count: number }>("/fixit/issue-types");
+    if (res && Array.isArray(res.items) && res.items.length > 0) {
+      const mapped: IssueType[] = res.items.map((item) => ({
+        id: item.issue_type_id || item.id,
+        name: item.name,
+        description: item.description || "",
+        icon: item.icon || "Wrench",
+      }));
+      saveIssueTypes(mapped);
+      return mapped;
+    }
+  } catch {
+    // Offline fallback
+  }
+  return getIssueTypes();
+}
+
 export function addIssueType(data: { name: string; description: string; icon?: string }): IssueType {
   const types = getIssueTypes();
   const newType: IssueType = {
@@ -178,6 +200,13 @@ export function addIssueType(data: { name: string; description: string; icon?: s
     icon: data.icon || "Wrench",
   };
   saveIssueTypes([...types, newType]);
+
+  // Attempt backend push asynchronously
+  apiRequest("/fixit/issue-types", {
+    method: "POST",
+    json: { name: newType.name, description: newType.description },
+  }).catch(() => {});
+
   return newType;
 }
 
@@ -187,6 +216,12 @@ export function updateIssueType(id: string, data: Partial<IssueType>): IssueType
   if (idx === -1) return null;
   types[idx] = { ...types[idx], ...data };
   saveIssueTypes(types);
+
+  apiRequest(`/fixit/issue-types/${id}`, {
+    method: "PATCH",
+    json: { name: data.name, description: data.description },
+  }).catch(() => {});
+
   return types[idx];
 }
 
@@ -195,6 +230,8 @@ export function deleteIssueType(id: string): boolean {
   const filtered = types.filter((t) => t.id !== id);
   if (filtered.length === types.length) return false;
   saveIssueTypes(filtered);
+
+  apiRequest(`/fixit/issue-types/${id}`, { method: "DELETE" }).catch(() => {});
   return true;
 }
 
@@ -209,6 +246,46 @@ export function getTickets(): Ticket[] {
 
 export function saveTickets(tickets: Ticket[]): void {
   writeJson(STORAGE_TICKETS_KEY, tickets);
+}
+
+export async function syncTicketsFromBackend(): Promise<Ticket[]> {
+  try {
+    const res = await apiRequest<{ items: any[]; count: number }>("/fixit/tickets");
+    if (res && Array.isArray(res.items) && res.items.length > 0) {
+      const mapped: Ticket[] = res.items.map((item) => ({
+        id: item.ticket_id || item.id,
+        title: item.title,
+        description: item.description,
+        issue_type_id: item.issue_type_id,
+        issue_type_name: item.issue_type_name || "General",
+        location: item.location || "Campus",
+        status: (item.status || "OPEN").toUpperCase() as TicketStatus,
+        photo_url: item.photo_url || item.photo?.url,
+        created_by: item.reported_by || item.created_by || "user",
+        created_by_name: item.reported_by_name || item.created_by_name || "Campus Member",
+        created_by_role: item.reported_by_role || "student",
+        created_at: item.created_at || new Date().toISOString(),
+        expected_by: item.expected_by,
+        resolution_note: item.resolution_note,
+        resolved_at: item.resolved_at,
+        acknowledged_at: item.acknowledged_at,
+      }));
+
+      // Merge with default seed tickets if not present
+      const combined = [...mapped];
+      for (const def of DEFAULT_TICKETS) {
+        if (!combined.some((c) => c.id === def.id)) {
+          combined.push(def);
+        }
+      }
+
+      saveTickets(combined);
+      return combined;
+    }
+  } catch {
+    // Offline fallback
+  }
+  return getTickets();
 }
 
 export function createTicket(payload: {
@@ -240,10 +317,22 @@ export function createTicket(payload: {
     created_by_name: payload.creatorName,
     created_by_role: payload.creatorRole,
     created_at: new Date().toISOString(),
-    expected_by: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), // Default 48h TAT
+    expected_by: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
   };
 
   saveTickets([newTicket, ...tickets]);
+
+  // Attempt backend POST (form-data per API spec)
+  const formData = new FormData();
+  formData.append("issue_type_id", payload.issue_type_id);
+  formData.append("title", payload.title);
+  formData.append("description", payload.description);
+
+  apiRequest("/fixit/tickets", {
+    method: "POST",
+    formData,
+  }).catch(() => {});
+
   return newTicket;
 }
 
@@ -268,6 +357,13 @@ export function updateTicket(
     issue_type_name: typeName,
   };
   saveTickets(tickets);
+
+  // Backend patch
+  apiRequest(`/fixit/tickets/${id}`, {
+    method: "PATCH",
+    json: payload,
+  }).catch(() => {});
+
   return tickets[idx];
 }
 
@@ -295,6 +391,22 @@ export function updateTicketStatus(
 
   tickets[idx] = updated;
   saveTickets(tickets);
+
+  // Call backend status & tat endpoints
+  const apiStatus = newStatus === "IN_PROGRESS" ? "open" : newStatus.toLowerCase();
+  apiRequest(`/fixit/tickets/${id}/status`, {
+    method: "PUT",
+    json: { status: apiStatus, note: resolutionNote || "" },
+  }).catch(() => {});
+
+  if (expectedBy) {
+    const dateOnly = expectedBy.split("T")[0];
+    apiRequest(`/fixit/tickets/${id}/tat`, {
+      method: "PUT",
+      json: { expected_by: dateOnly, note: resolutionNote || "" },
+    }).catch(() => {});
+  }
+
   return updated;
 }
 
@@ -309,6 +421,11 @@ export function acknowledgeTicket(id: string): Ticket | null {
     acknowledged_at: new Date().toISOString(),
   };
   saveTickets(tickets);
+
+  apiRequest(`/fixit/tickets/${id}/acknowledge`, {
+    method: "POST",
+  }).catch(() => {});
+
   return tickets[idx];
 }
 
@@ -317,6 +434,11 @@ export function deleteTicket(id: string): boolean {
   const filtered = tickets.filter((t) => t.id !== id);
   if (filtered.length === tickets.length) return false;
   saveTickets(filtered);
+
+  apiRequest(`/fixit/tickets/${id}`, {
+    method: "DELETE",
+  }).catch(() => {});
+
   return true;
 }
 
@@ -335,4 +457,3 @@ export function computeFixItStats(tickets: Ticket[], currentUserId?: string | nu
 
   return { total, open, resolved, overdue, myTickets };
 }
-

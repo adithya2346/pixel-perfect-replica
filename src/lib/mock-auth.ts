@@ -1,9 +1,4 @@
-/**
- * Frontend-only mock authentication for CampusOS – FixIt.
- *
- * All data lives in localStorage and every OTP is simulated in the UI.
- * This is demo tooling — never use it to protect real data.
- */
+import { apiRequest, setStoredToken } from "./api-client";
 
 export type UserRole = "student" | "faculty";
 export type DashboardRole = UserRole | "admin";
@@ -191,7 +186,32 @@ export function clearSession(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(SESSION_KEY);
+    setStoredToken(null);
   } catch {
     /* ignore */
   }
+}
+
+export async function authenticateWithLiveBackend(
+  email: string,
+  otp: string,
+  isAdmin = false,
+): Promise<boolean> {
+  try {
+    const endpoint = isAdmin ? "/auth/admin/login" : "/auth/login";
+    const res = await apiRequest<{
+      access_token: string;
+      profile: { role: string; name: string };
+    }>(endpoint, {
+      method: "POST",
+      json: { email_id: email.trim().toLowerCase(), otp: otp.trim() },
+    });
+    if (res?.access_token) {
+      setStoredToken(res.access_token);
+      return true;
+    }
+  } catch {
+    // Offline resilience fallback
+  }
+  return false;
 }
