@@ -34,7 +34,7 @@ export const ADMIN_DEMO = {
   otp: "472719",
 } as const;
 
-export const USN_PATTERN = /^[A-Za-z]{1,4}[0-9]{2}[A-Za-z]{2,4}[0-9]{3}$/;
+export const USN_PATTERN = /^[0-9A-Za-z]{1,4}[0-9]{2}[A-Za-z]{2,4}[0-9]{3}$/;
 export const MOBILE_PATTERN = /^[6-9][0-9]{9}$/;
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -85,8 +85,32 @@ function writeJson(key: string, value: unknown): void {
   }
 }
 
+export const DEFAULT_USERS: RegisteredUser[] = [
+  {
+    id: "demo-student-1",
+    fullName: "Aarav Sharma",
+    usn: "1RV23CS099",
+    email: "aarav.student@campus.edu",
+    mobile: "9812345670",
+    role: "student",
+  },
+  {
+    id: "demo-faculty-1",
+    fullName: "Dr. Priya Raman",
+    usn: "1RV18CS042",
+    email: "priya.faculty@campus.edu",
+    mobile: "9812345671",
+    role: "faculty",
+  },
+];
+
 export function getRegisteredUsers(): RegisteredUser[] {
-  return readJson<RegisteredUser[]>(USERS_KEY, []);
+  const existing = readJson<RegisteredUser[] | null>(USERS_KEY, null);
+  if (existing === null) {
+    writeJson(USERS_KEY, DEFAULT_USERS);
+    return DEFAULT_USERS;
+  }
+  return existing;
 }
 
 function saveUsers(users: RegisteredUser[]): void {
