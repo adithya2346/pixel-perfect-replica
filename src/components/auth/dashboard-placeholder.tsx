@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getSession, type AuthSession, type DashboardRole } from "@/lib/mock-auth";
 import { FixItDashboard } from "@/components/fixit/fixit-dashboard";
 
-export const DASHBOARD_ROLES: DashboardRole[] = ["student", "faculty", "admin"];
+export const DASHBOARD_ROLES: DashboardRole[] = ["student", "faculty", "office_staff", "admin"];
 
 export function DashboardPlaceholder({ role }: { role: DashboardRole }) {
   const navigate = useNavigate();

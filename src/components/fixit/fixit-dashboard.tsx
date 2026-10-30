@@ -110,10 +110,12 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
         ? { name: "Team 42 Admin", usn: null, role: "admin" }
         : newRole === "faculty"
           ? { name: "Dr. Priya Raman", usn: "1RV18CS042", role: "faculty" }
-          : { name: "Aarav Sharma", usn: "1RV23CS099", role: "student" };
+          : newRole === "office_staff"
+            ? { name: "Ramesh Kumar", usn: "STF-2024-08", role: "office_staff" }
+            : { name: "Aarav Sharma", usn: "1RV23CS099", role: "student" };
     setSession(updated);
     setLocalSession(updated);
-    toast.info(`Switched view to ${newRole.toUpperCase()}`);
+    toast.info(`Switched view to ${newRole.toUpperCase().replace("_", " ")}`);
     navigate({ to: "/dashboard/$role", params: { role: newRole } });
   }
 
@@ -251,7 +253,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 flex items-center gap-1">
               <Users className="h-3 w-3" /> Demo Role Switcher
             </span>
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
                 onClick={() => switchRole("student")}
@@ -276,6 +278,17 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
               </button>
               <button
                 type="button"
+                onClick={() => switchRole("office_staff")}
+                className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
+                  currentUser.role === "office_staff"
+                    ? "bg-amber-600 text-white font-bold"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Office Staff
+              </button>
+              <button
+                type="button"
                 onClick={() => switchRole("admin")}
                 className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
                   currentUser.role === "admin"
@@ -283,7 +296,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                     : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Admin/CM
+                Admin / CM
               </button>
             </div>
           </div>

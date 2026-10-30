@@ -56,6 +56,7 @@ export function TicketDetailsModal({
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editPhoto, setEditPhoto] = useState<string | undefined>(undefined);
 
   if (!ticket) return null;
 
@@ -72,6 +73,7 @@ export function TicketDetailsModal({
     setEditTitle(ticket.title);
     setEditDesc(ticket.description);
     setEditLocation(ticket.location);
+    setEditPhoto(ticket.photo_url);
     setEditing(true);
   }
 
@@ -84,6 +86,7 @@ export function TicketDetailsModal({
       title: editTitle.trim(),
       description: editDesc.trim(),
       location: editLocation.trim(),
+      photo_url: editPhoto,
     });
     setEditing(false);
     toast.success("Ticket details updated successfully.");
@@ -175,6 +178,31 @@ export function TicketDetailsModal({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Description</Label>
               <Textarea rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs font-semibold">Attached Photo</Label>
+              {editPhoto ? (
+                <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 p-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <img src={editPhoto} alt="" className="h-10 w-10 object-cover rounded-md" />
+                    <span className="text-xs text-foreground font-medium">Photo attached</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditPhoto(undefined)}
+                    className="text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Remove Photo (remove_photo=true)
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground p-2 rounded-xl border border-dashed border-border text-center">
+                  No photo attached.
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => setEditing(false)}>

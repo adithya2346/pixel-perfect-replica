@@ -1,6 +1,6 @@
 import { apiRequest, setStoredToken } from "./api-client";
 
-export type UserRole = "student" | "faculty";
+export type UserRole = "student" | "faculty" | "office_staff";
 export type DashboardRole = UserRole | "admin";
 
 export interface NewRegistration {
@@ -96,6 +96,14 @@ export const DEFAULT_USERS: RegisteredUser[] = [
     email: "priya.faculty@campus.edu",
     mobile: "9812345671",
     role: "faculty",
+  },
+  {
+    id: "demo-staff-1",
+    fullName: "Ramesh Kumar",
+    usn: "STF-2024-08",
+    email: "ramesh.staff@campus.edu",
+    mobile: "9812345672",
+    role: "office_staff",
   },
 ];
 
