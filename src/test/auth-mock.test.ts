@@ -48,15 +48,15 @@ describe("field validation", () => {
   });
 });
 
-describe("Team 42 admin demo credentials", () => {
+describe("Team 41 admin demo credentials", () => {
   it("matches only the exact predefined admin email and phone", () => {
-    expect(ADMIN_DEMO.email).toBe("admin@team42.com");
-    expect(ADMIN_DEMO.phone).toBe("9000000042");
+    expect(ADMIN_DEMO.email).toBe("admin@team41.com");
+    expect(ADMIN_DEMO.phone).toBe("9000000041");
     expect(ADMIN_DEMO.otp).toBe("472719");
-    expect(matchesAdminCredentials("admin@team42.com", "9000000042")).toBe(true);
+    expect(matchesAdminCredentials("admin@team41.com", "9000000041")).toBe(true);
     expect(matchesAdminCredentials("Admin@Team42.com ", "9000000042")).toBe(true);
-    expect(matchesAdminCredentials("admin@team42.com", "9999999999")).toBe(false);
-    expect(matchesAdminCredentials("student@campus.edu", "9000000042")).toBe(false);
+    expect(matchesAdminCredentials("admin@team41.com", "9999999999")).toBe(false);
+    expect(matchesAdminCredentials("student@campus.edu", "9000000041")).toBe(false);
   });
 
   it("accepts only the predefined admin OTP", () => {

@@ -19,10 +19,18 @@ export interface AuthSession {
   name: string;
   usn: string | null;
   role: DashboardRole;
+  teamId?: string;
 }
 
-/** Predefined frontend demo credentials for the Team 42 administrator portal. */
+/** Predefined frontend demo credentials for the Team 41 administrator portal. */
 export const ADMIN_DEMO = {
+  name: "Team 41 Admin",
+  email: "admin@team41.com",
+  phone: "9000000041",
+  otp: "472719",
+} as const;
+
+export const ADMIN_DEMO_TEAM42 = {
   name: "Team 42 Admin",
   email: "admin@team42.com",
   phone: "9000000042",
@@ -99,10 +107,10 @@ export const DEFAULT_USERS: RegisteredUser[] = [
   },
   {
     id: "demo-staff-1",
-    fullName: "Ramesh Kumar",
-    usn: "STF-2024-08",
-    email: "ramesh.staff@campus.edu",
-    mobile: "9812345672",
+    fullName: "Ravi Shetty",
+    usn: "STF-2024-41",
+    email: "ravi@team41.com",
+    mobile: "9876543211",
     role: "office_staff",
   },
 ];
@@ -168,10 +176,11 @@ export function findUserByLogin(usn: string, contact: string): RegisteredUser | 
 }
 
 export function matchesAdminCredentials(email: string, phone: string): boolean {
-  return (
-    email.trim().toLowerCase() === ADMIN_DEMO.email &&
-    phone.trim().replace(/\s+/g, "") === ADMIN_DEMO.phone
-  );
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phone.trim().replace(/\s+/g, "");
+  const isTeam41 = cleanEmail === ADMIN_DEMO.email && cleanPhone === ADMIN_DEMO.phone;
+  const isTeam42 = cleanEmail === ADMIN_DEMO_TEAM42.email && cleanPhone === ADMIN_DEMO_TEAM42.phone;
+  return isTeam41 || isTeam42;
 }
 
 export function otpMatches(expected: string, entered: string): boolean {
@@ -200,26 +209,50 @@ export function clearSession(): void {
   }
 }
 
+export interface AuthBackendResult {
+  ok: boolean;
+  token?: string;
+  profile?: {
+    role: string;
+    name: string;
+    institution_name?: string;
+    team_id?: string;
+    usn?: string | null;
+    dept?: string;
+    email_id?: string;
+  };
+  error?: string;
+}
+
 export async function authenticateWithLiveBackend(
   email: string,
   otp: string,
   isAdmin = false,
-): Promise<boolean> {
+): Promise<AuthBackendResult> {
   try {
     const endpoint = isAdmin ? "/auth/admin/login" : "/auth/login";
     const res = await apiRequest<{
       access_token: string;
-      profile: { role: string; name: string };
+      profile: {
+        role: string;
+        name: string;
+        institution_name?: string;
+        team_id?: string;
+        usn?: string | null;
+        dept?: string;
+        email_id?: string;
+      };
     }>(endpoint, {
       method: "POST",
       json: { email_id: email.trim().toLowerCase(), otp: otp.trim() },
     });
     if (res?.access_token) {
       setStoredToken(res.access_token);
-      return true;
+      return { ok: true, token: res.access_token, profile: res.profile };
     }
-  } catch {
-    // Offline resilience fallback
+  } catch (err: unknown) {
+    const errorMsg = (err as Error)?.message || "Invalid credentials or OTP.";
+    return { ok: false, error: errorMsg };
   }
-  return false;
+  return { ok: false, error: "Authentication failed." };
 }

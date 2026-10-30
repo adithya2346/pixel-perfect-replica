@@ -3,16 +3,15 @@ import { ArrowLeft, Info, KeyRound, Loader2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { simulateDelay } from "@/lib/mock-auth";
 
 const RESEND_SECONDS = 30;
 
 interface OTPVerificationProps {
   title: string;
   subtitle: string;
-  expectedCode: string;
-  demoCode: string;
-  onVerified: () => void;
+  expectedCode?: string;
+  demoCode?: string;
+  onVerified: (code: string) => Promise<boolean | string | void> | boolean | string | void;
   onResend: () => void;
   onBack: () => void;
   backLabel: string;
@@ -45,13 +44,24 @@ export function OTPVerification({
     if (verifying || value.length !== 6) return;
     setVerifying(true);
     setError(null);
-    await simulateDelay(700);
-    if (value !== expectedCode) {
+
+    try {
+      const result = await onVerified(value);
+      if (typeof result === "string") {
+        setVerifying(false);
+        setError(result);
+        return;
+      }
+      if (result === false) {
+        setVerifying(false);
+        setError("Incorrect verification code. Please check and try again.");
+        return;
+      }
+      // Success, parent will transition screen
+    } catch (err: unknown) {
       setVerifying(false);
-      setError("Incorrect verification code. Please check and try again.");
-      return;
+      setError((err as Error)?.message || "Verification failed. Please try again.");
     }
-    onVerified();
   }
 
   function handleResend() {
@@ -79,14 +89,15 @@ export function OTPVerification({
       <h2 className="mt-4 font-display text-xl font-bold tracking-tight text-foreground">{title}</h2>
       <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
 
-      <div className="mt-5 flex gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Demo simulation — verification code{" "}
-          <span className="font-display font-semibold text-primary">{demoCode}</span>. No real SMS
-          or email is sent.
-        </p>
-      </div>
+      {demoCode && (
+        <div className="mt-5 flex gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Enter the 6-digit code provided on your team sheet or use simulated code{" "}
+            <span className="font-display font-semibold text-primary">{demoCode}</span>.
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 flex justify-center">
         <InputOTP

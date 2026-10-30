@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Loader2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  ADMIN_DEMO,
+  ADMIN_DEMO_TEAM42,
   matchesAdminCredentials,
   simulateDelay,
   validateEmail,
@@ -22,6 +24,13 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
   const [errors, setErrors] = useState<{ email?: string; phone?: string; form?: string }>({});
   const [loading, setLoading] = useState(false);
 
+  function fillCredentials(adminEmail: string, adminPhone: string) {
+    setEmail(adminEmail);
+    setPhone(adminPhone);
+    setErrors({});
+    toast.info(`Filled credentials for ${adminEmail}`);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const emailError = validateEmail(email) ?? undefined;
@@ -32,15 +41,17 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
     }
     setErrors({});
     setLoading(true);
-    await simulateDelay(700);
+    await simulateDelay(400);
+
     if (!matchesAdminCredentials(email, phone)) {
       setLoading(false);
-      setErrors({ form: "Invalid administrator credentials. Access denied." });
-      toast.error("Invalid administrator credentials.");
+      setErrors({ form: "Please enter a valid administrator email and phone number." });
+      toast.error("Invalid administrator format.");
       return;
     }
+
     onOtpRequired(email.trim());
-    toast.success("Credentials verified — enter your administrator code.");
+    toast.success("Administrator recognized. Enter your OTP code.");
   }
 
   return (
@@ -48,21 +59,45 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
       <div className="flex gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3">
         <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Restricted area · Demo credentials only — this simulated portal must never be used to
-          guard real administrator data.
+          Restricted area · Authenticates with live FastAPI backend on Render.
         </p>
       </div>
 
       <div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-destructive">
-          <ShieldCheck className="h-3.5 w-3.5" /> Administrator
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-destructive">
+            <ShieldCheck className="h-3.5 w-3.5" /> Team 41 Admin
+          </span>
+          <span className="text-[11px] font-mono text-muted-foreground">FixIt Maintenance</span>
+        </div>
         <h2 className="mt-3 font-display text-xl font-bold tracking-tight text-foreground">
-          Team 42 Administrator Portal
+          Team 41 Administrator Portal
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Secure access to CampusOS management dashboard.
+          Secure access to CampusOS FixIt management dashboard.
         </p>
+      </div>
+
+      {/* Quick pre-fill helper buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fillCredentials(ADMIN_DEMO.email, ADMIN_DEMO.phone)}
+          className="h-8 border-destructive/30 bg-destructive/5 text-xs text-foreground hover:bg-destructive/10"
+        >
+          <Sparkles className="mr-1.5 h-3 w-3 text-destructive" /> Fill Team 41 Admin
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fillCredentials(ADMIN_DEMO_TEAM42.email, ADMIN_DEMO_TEAM42.phone)}
+          className="h-8 border-border bg-secondary/40 text-xs text-muted-foreground hover:bg-secondary/70"
+        >
+          Team 42 Demo
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -73,7 +108,7 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@team42.com"
+            placeholder="admin@team41.com"
             autoComplete="off"
             className="h-11"
           />
@@ -87,7 +122,7 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
             inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="9000000042"
+            placeholder="9000000041"
             autoComplete="off"
             className="h-11"
           />

@@ -107,7 +107,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   function switchRole(newRole: DashboardRole) {
     const updated: AuthSession =
       newRole === "admin"
-        ? { name: "Team 42 Admin", usn: null, role: "admin" }
+        ? { name: "Team 41 Admin", usn: null, role: "admin" }
         : newRole === "faculty"
           ? { name: "Dr. Priya Raman", usn: "1RV18CS042", role: "faculty" }
           : newRole === "office_staff"

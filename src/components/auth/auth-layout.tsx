@@ -36,7 +36,7 @@ const PANEL_FEATURES = [
   {
     icon: ShieldCheck,
     title: "Administrator portal",
-    text: "A separate secure entry point for the Team 42 admin team.",
+    text: "A separate secure entry point for the Team 41 admin team.",
   },
 ];
 
