@@ -78,27 +78,37 @@ const STORAGE_TICKETS_KEY = "campusos-fixit:tickets";
 const STORAGE_ISSUE_TYPES_KEY = "campusos-fixit:issue_types";
 const STORAGE_SEEDED_KEY = "campusos-fixit:demo_seeded";
 
+export const BACKEND_ISSUE_TYPE_REGEX = /^ITY-[0-9]{13}-[0-9a-f]{8}$/;
+export const BACKEND_TICKET_REGEX = /^TKT-[0-9]{13}-[0-9a-f]{8}$/;
+
+export const LEGACY_ISSUE_TYPE_MAP: Record<string, string> = {
+  "it-electrical": "ITY-8206576848029-f48b4e3f",
+  "it-plumbing": "ITY-8206576847737-01bb669c",
+  "it-furniture": "ITY-8206576847400-67a7d4f7",
+  "it-itnetwork": "ITY-8206576847086-7be55b04",
+};
+
 export const DEFAULT_ISSUE_TYPES: IssueType[] = [
   {
-    id: "it-electrical",
+    id: "ITY-8206576848029-f48b4e3f",
     name: "Electrical",
     description: "Fan, light, switch, MCB, sockets",
     icon: "Zap",
   },
   {
-    id: "it-plumbing",
+    id: "ITY-8206576847737-01bb669c",
     name: "Plumbing",
     description: "Tap, pipe, leakage, flush, drainage",
     icon: "Droplets",
   },
   {
-    id: "it-furniture",
+    id: "ITY-8206576847400-67a7d4f7",
     name: "Furniture",
     description: "Chair, table, bench, whiteboard, podium",
     icon: "Armchair",
   },
   {
-    id: "it-itnetwork",
+    id: "ITY-8206576847086-7be55b04",
     name: "IT & Network",
     description: "WiFi, projector, LAN port, display",
     icon: "Wifi",
@@ -121,7 +131,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1001",
     title: "Ceiling fan not working",
     description: "The ceiling fan in Room 204 does not spin at any speed. Makes a humming noise.",
-    issue_type_id: "it-electrical",
+    issue_type_id: "ITY-8206576848029-f48b4e3f",
     issue_type_name: "Electrical",
     location: "Academic Block A · Room 204",
     status: "OPEN",
@@ -140,7 +150,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1002",
     title: "Corridor tube light flickering",
     description: "Both tube lights in the first floor corridor flicker constantly.",
-    issue_type_id: "it-electrical",
+    issue_type_id: "ITY-8206576848029-f48b4e3f",
     issue_type_name: "Electrical",
     location: "Academic Block A · 1st Floor Corridor",
     status: "IN_PROGRESS",
@@ -159,7 +169,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1003",
     title: "Switch board sparking near Lab 3",
     description: "The switch board outside Lab 3 sparks when a plug is inserted. Safety risk.",
-    issue_type_id: "it-electrical",
+    issue_type_id: "ITY-8206576848029-f48b4e3f",
     issue_type_name: "Electrical",
     location: "Engineering Block · Lab 3",
     status: "OPEN",
@@ -180,7 +190,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1004",
     title: "Water leakage under wash basin",
     description: "Continuous drip from the pipe joint under the wash basin, floor stays wet.",
-    issue_type_id: "it-plumbing",
+    issue_type_id: "ITY-8206576847737-01bb669c",
     issue_type_name: "Plumbing",
     location: "Hostel Block B · Washroom 2",
     status: "IN_PROGRESS",
@@ -199,7 +209,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1005",
     title: "Drinking water tap broken",
     description: "The tap handle at the water station snapped off; water keeps running.",
-    issue_type_id: "it-plumbing",
+    issue_type_id: "ITY-8206576847737-01bb669c",
     issue_type_name: "Plumbing",
     location: "Canteen · Water Station",
     status: "OPEN",
@@ -218,7 +228,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1006",
     title: "Toilet flush not working",
     description: "Flush valve in the ground floor restroom does not release water.",
-    issue_type_id: "it-plumbing",
+    issue_type_id: "ITY-8206576847737-01bb669c",
     issue_type_name: "Plumbing",
     location: "Academic Block C · Ground Floor Restroom",
     status: "RESOLVED",
@@ -241,7 +251,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1007",
     title: "Broken chair in classroom",
     description: "One chair in Room 108 has a cracked leg and wobbles badly.",
-    issue_type_id: "it-furniture",
+    issue_type_id: "ITY-8206576847400-67a7d4f7",
     issue_type_name: "Furniture",
     location: "Academic Block B · Room 108",
     status: "OPEN",
@@ -255,7 +265,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1008",
     title: "Whiteboard mounting loose",
     description: "The whiteboard in Room 110 has come off its top-left mounting screw.",
-    issue_type_id: "it-furniture",
+    issue_type_id: "ITY-8206576847400-67a7d4f7",
     issue_type_name: "Furniture",
     location: "Academic Block B · Room 110",
     status: "IN_PROGRESS",
@@ -274,7 +284,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1009",
     title: "Podium table damaged",
     description: "The seminar hall podium table has a shattered corner and is unsafe to use.",
-    issue_type_id: "it-furniture",
+    issue_type_id: "ITY-8206576847400-67a7d4f7",
     issue_type_name: "Furniture",
     location: "Main Seminar Hall",
     status: "RESOLVED",
@@ -292,7 +302,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1010",
     title: "WiFi not connecting in Library",
     description: "Campus WiFi keeps failing to authenticate on the library's second floor.",
-    issue_type_id: "it-itnetwork",
+    issue_type_id: "ITY-8206576847086-7be55b04",
     issue_type_name: "IT & Network",
     location: "Central Library · 2nd Floor",
     status: "OPEN",
@@ -311,7 +321,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1011",
     title: "Projector not displaying",
     description: "The projector in Room 301 powers on but shows no signal on any input.",
-    issue_type_id: "it-itnetwork",
+    issue_type_id: "ITY-8206576847086-7be55b04",
     issue_type_name: "IT & Network",
     location: "Academic Block A · Room 301",
     status: "IN_PROGRESS",
@@ -330,7 +340,7 @@ export const DEFAULT_TICKETS: Ticket[] = [
     id: "TK-1012",
     title: "LAN port dead at desk 12",
     description: "No link light and no connectivity from the LAN port at Computer Lab 2, desk 12.",
-    issue_type_id: "it-itnetwork",
+    issue_type_id: "ITY-8206576847086-7be55b04",
     issue_type_name: "IT & Network",
     location: "Computer Lab 2",
     status: "OPEN",
@@ -375,7 +385,18 @@ export function getIssueTypes(): IssueType[] {
     writeJson(STORAGE_ISSUE_TYPES_KEY, DEFAULT_ISSUE_TYPES);
     return DEFAULT_ISSUE_TYPES;
   }
-  return existing;
+  let modified = false;
+  const migrated = existing.map((t) => {
+    if (LEGACY_ISSUE_TYPE_MAP[t.id]) {
+      modified = true;
+      return { ...t, id: LEGACY_ISSUE_TYPE_MAP[t.id] };
+    }
+    return t;
+  });
+  if (modified) {
+    writeJson(STORAGE_ISSUE_TYPES_KEY, migrated);
+  }
+  return migrated;
 }
 
 export function saveIssueTypes(types: IssueType[]): void {
@@ -480,6 +501,26 @@ export function isValidPhotoUrl(url?: string): boolean {
   return /^[A-Za-z0-9+/]+={0,2}$/.test(b64);
 }
 
+/** Converts base64 data URL to a binary Blob for multipart/form-data upload */
+export function dataUrlToBlob(dataUrl: string): Blob | null {
+  try {
+    if (!dataUrl || !dataUrl.startsWith("data:")) return null;
+    const parts = dataUrl.split(",");
+    if (parts.length < 2) return null;
+    const mimeMatch = parts[0]?.match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bstr = atob(parts[1] || "");
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch {
+    return null;
+  }
+}
+
 export function getTickets(): Ticket[] {
   const stored = readJson<Ticket[] | null>(STORAGE_TICKETS_KEY, null);
   const version = readJson<number>(STORAGE_SEEDED_KEY, 0);
@@ -515,18 +556,31 @@ export function getTickets(): Ticket[] {
     return merged;
   }
 
-  // Auto-heal corrupt sliced photo URLs from previous bug
+  // Auto-heal corrupt sliced photo URLs and migrate legacy issue_type_id
   if (stored && Array.isArray(stored)) {
-    let hasCorrupt = false;
+    let hasModified = false;
     const sanitized = stored.map((t) => {
+      let changed = false;
+      let newPhoto = t.photo_url;
+      let newIssueTypeId = t.issue_type_id;
+
       if (t.photo_url && !isValidPhotoUrl(t.photo_url)) {
-        hasCorrupt = true;
-        return { ...t, photo_url: undefined };
+        newPhoto = undefined;
+        changed = true;
+      }
+      if (t.issue_type_id && LEGACY_ISSUE_TYPE_MAP[t.issue_type_id]) {
+        newIssueTypeId = LEGACY_ISSUE_TYPE_MAP[t.issue_type_id];
+        changed = true;
+      }
+
+      if (changed) {
+        hasModified = true;
+        return { ...t, photo_url: newPhoto, issue_type_id: newIssueTypeId };
       }
       return t;
     });
 
-    if (hasCorrupt) {
+    if (hasModified) {
       saveTickets(sanitized);
       return sanitized;
     }
@@ -635,7 +689,24 @@ export function createTicket(payload: {
 }): Ticket {
   const tickets = getTickets();
   const issueTypes = getIssueTypes();
-  const issueType = issueTypes.find((it) => it.id === payload.issue_type_id);
+
+  // Resolve issue_type_id to valid backend ID if possible
+  let resolvedTypeId = payload.issue_type_id;
+  if (LEGACY_ISSUE_TYPE_MAP[resolvedTypeId]) {
+    resolvedTypeId = LEGACY_ISSUE_TYPE_MAP[resolvedTypeId];
+  } else if (!BACKEND_ISSUE_TYPE_REGEX.test(resolvedTypeId)) {
+    const found = issueTypes.find(
+      (it) => it.id === resolvedTypeId || it.name.toLowerCase() === payload.issue_type_id.toLowerCase(),
+    );
+    if (found && BACKEND_ISSUE_TYPE_REGEX.test(found.id)) {
+      resolvedTypeId = found.id;
+    } else {
+      const firstValid = issueTypes.find((it) => BACKEND_ISSUE_TYPE_REGEX.test(it.id));
+      if (firstValid) resolvedTypeId = firstValid.id;
+    }
+  }
+
+  const issueType = issueTypes.find((it) => it.id === resolvedTypeId || it.id === payload.issue_type_id);
 
   // Generate next sequential ticket ID
   const nextNumber = 1000 + tickets.length + 1;
@@ -643,7 +714,7 @@ export function createTicket(payload: {
     id: `TK-${nextNumber}`,
     title: payload.title.trim(),
     description: payload.description.trim(),
-    issue_type_id: payload.issue_type_id,
+    issue_type_id: resolvedTypeId,
     issue_type_name: issueType ? issueType.name : "General",
     location: payload.location.trim() || "Main Campus",
     status: "OPEN",
@@ -657,16 +728,42 @@ export function createTicket(payload: {
 
   saveTickets([newTicket, ...tickets]);
 
-  // Attempt backend POST (form-data per API spec)
-  const formData = new FormData();
-  formData.append("issue_type_id", payload.issue_type_id);
-  formData.append("title", payload.title);
-  formData.append("description", payload.description);
+  // If we have a valid backend issue_type_id, push to live FastAPI backend
+  if (BACKEND_ISSUE_TYPE_REGEX.test(resolvedTypeId)) {
+    const formData = new FormData();
+    formData.append("issue_type_id", resolvedTypeId);
+    formData.append("title", payload.title.trim().slice(0, 120));
+    formData.append("description", payload.description.trim().slice(0, 2000));
 
-  apiRequest("/fixit/tickets", {
-    method: "POST",
-    formData,
-  }).catch(() => {});
+    if (payload.photo_url && payload.photo_url.startsWith("data:")) {
+      const photoBlob = dataUrlToBlob(payload.photo_url);
+      if (photoBlob) {
+        formData.append("photo", photoBlob, "photo.jpg");
+      }
+    }
+
+    apiRequest<BackendTicket>("/fixit/tickets", {
+      method: "POST",
+      formData,
+    })
+      .then((backendTicket) => {
+        if (backendTicket?.ticket_id) {
+          const allTickets = getTickets();
+          const tIdx = allTickets.findIndex((t) => t.id === newTicket.id);
+          if (tIdx !== -1 && allTickets[tIdx]) {
+            allTickets[tIdx] = {
+              ...allTickets[tIdx],
+              id: backendTicket.ticket_id,
+              photo_url: backendTicket.photo?.url || allTickets[tIdx]?.photo_url,
+            };
+            saveTickets(allTickets);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Live backend ticket create note:", err?.message || err);
+      });
+  }
 
   return newTicket;
 }
@@ -696,11 +793,25 @@ export function updateTicket(
   tickets[idx] = updatedTicket;
   saveTickets(tickets);
 
-  // Backend patch
-  apiRequest(`/fixit/tickets/${id}`, {
-    method: "PATCH",
-    json: payload,
-  }).catch(() => {});
+  // Backend patch — only when id is a real backend ticket ID
+  if (BACKEND_TICKET_REGEX.test(id)) {
+    const formData = new FormData();
+    if (payload.title) formData.append("title", payload.title.trim().slice(0, 120));
+    if (payload.description) formData.append("description", payload.description.trim().slice(0, 2000));
+    if (payload.issue_type_id && BACKEND_ISSUE_TYPE_REGEX.test(payload.issue_type_id)) {
+      formData.append("issue_type_id", payload.issue_type_id);
+    }
+    if (payload.photo_url && payload.photo_url.startsWith("data:")) {
+      const photoBlob = dataUrlToBlob(payload.photo_url);
+      if (photoBlob) {
+        formData.append("photo", photoBlob, "photo.jpg");
+      }
+    }
+    apiRequest(`/fixit/tickets/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      formData,
+    }).catch(() => {});
+  }
 
   return updatedTicket;
 }
@@ -746,21 +857,22 @@ export function updateTicketStatus(
   tickets[idx] = updated;
   saveTickets(tickets);
 
-  // Call backend status & tat endpoints. The API accepts only `open`/`resolved`,
-  // and StatusSet requires a note of 1-280 characters, so never send "".
-  const apiStatus = newStatus === "RESOLVED" ? "resolved" : "open";
-  const note = (resolutionNote?.trim() || STATUS_NOTES[newStatus]).slice(0, 280);
-  apiRequest(`/fixit/tickets/${id}/status`, {
-    method: "PUT",
-    json: { status: apiStatus, note },
-  }).catch(() => {});
-
-  if (expectedBy) {
-    const dateOnly = expectedBy.split("T")[0];
-    apiRequest(`/fixit/tickets/${id}/tat`, {
+  // Call backend status & tat endpoints only if id is a real backend ticket
+  if (BACKEND_TICKET_REGEX.test(id)) {
+    const apiStatus = newStatus === "RESOLVED" ? "resolved" : "open";
+    const note = (resolutionNote?.trim() || STATUS_NOTES[newStatus]).slice(0, 280);
+    apiRequest(`/fixit/tickets/${encodeURIComponent(id)}/status`, {
       method: "PUT",
-      json: { expected_by: dateOnly, note: resolutionNote?.trim() || null },
+      json: { status: apiStatus, note },
     }).catch(() => {});
+
+    if (expectedBy) {
+      const dateOnly = expectedBy.split("T")[0];
+      apiRequest(`/fixit/tickets/${encodeURIComponent(id)}/tat`, {
+        method: "PUT",
+        json: { expected_by: dateOnly, note: resolutionNote?.trim() || null },
+      }).catch(() => {});
+    }
   }
 
   return updated;
@@ -780,9 +892,11 @@ export function acknowledgeTicket(id: string): Ticket | null {
   tickets[idx] = updated;
   saveTickets(tickets);
 
-  apiRequest(`/fixit/tickets/${id}/acknowledge`, {
-    method: "POST",
-  }).catch(() => {});
+  if (BACKEND_TICKET_REGEX.test(id)) {
+    apiRequest(`/fixit/tickets/${encodeURIComponent(id)}/acknowledge`, {
+      method: "POST",
+    }).catch(() => {});
+  }
 
   return updated;
 }
@@ -793,9 +907,14 @@ export function deleteTicket(id: string): boolean {
   if (filtered.length === tickets.length) return false;
   saveTickets(filtered);
 
-  apiRequest(`/fixit/tickets/${id}`, {
-    method: "DELETE",
-  }).catch(() => {});
+  // Only call live backend if id is a real backend ticket ID matching ^TKT-[0-9]{13}-[0-9a-f]{8}$
+  if (BACKEND_TICKET_REGEX.test(id)) {
+    apiRequest(`/fixit/tickets/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }).catch((err) => {
+      console.warn("Live backend ticket delete note:", err?.message || err);
+    });
+  }
 
   return true;
 }

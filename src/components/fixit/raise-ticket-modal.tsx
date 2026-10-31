@@ -107,7 +107,9 @@ export function RaiseTicketModal({
     const nextErrors: TicketFormErrors = {};
     if (!issueTypeId) nextErrors.issueTypeId = "Please select an issue type.";
     if (!title.trim()) nextErrors.title = "Title is required.";
+    else if (title.trim().length < 3) nextErrors.title = "Title must be at least 3 characters.";
     if (!description.trim()) nextErrors.description = "Description is required.";
+    else if (description.trim().length < 5) nextErrors.description = "Description must be at least 5 characters.";
     if (!location.trim()) nextErrors.location = "Location is required.";
 
     if (Object.keys(nextErrors).length > 0) {
