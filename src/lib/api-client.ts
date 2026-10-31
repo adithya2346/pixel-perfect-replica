@@ -5,7 +5,7 @@
  */
 
 export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "https://campus-os-backend-8sjf.onrender.com"
+  import.meta.env["VITE_API_BASE_URL"] || "https://campus-os-backend-8sjf.onrender.com"
 ).replace(/\/+$/, "");
 
 export const TOKEN_STORAGE_KEY = "campusos:access_token";
@@ -65,7 +65,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  let body: BodyInit | undefined;
+  let body: BodyInit | null = null;
   if (formData) {
     body = formData; // Browser sets multipart/form-data boundary automatically
   } else if (json !== undefined) {
@@ -125,4 +125,3 @@ export async function checkBackendHealth(): Promise<boolean> {
     return false;
   }
 }
-

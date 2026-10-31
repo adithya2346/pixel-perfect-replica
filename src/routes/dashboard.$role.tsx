@@ -1,10 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import {
-  DashboardPlaceholder,
-  DASHBOARD_ROLES,
-  type DashboardRole,
-} from "@/components/auth/dashboard-placeholder";
+import { DashboardPlaceholder, DASHBOARD_ROLES } from "@/components/auth/dashboard-placeholder";
+import type { DashboardRole } from "@/lib/mock-auth";
 
 export const Route = createFileRoute("/dashboard/$role")({
   beforeLoad: ({ params }) => {

@@ -3,27 +3,60 @@ import { Camera, ImagePlus, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createTicket, getIssueTypes, type Ticket } from "@/lib/fixit-store";
 
 interface RaiseTicketModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: { name: string; id: string; role: "student" | "faculty" | "admin" };
+  currentUser: { name: string; id: string; role: "student" | "faculty" | "office_staff" | "admin" };
   onTicketCreated: (ticket: Ticket) => void;
 }
 
+interface TicketFormErrors {
+  issueTypeId?: string;
+  title?: string;
+  description?: string;
+  location?: string;
+}
+
 const SAMPLE_PHOTOS = [
-  { label: "Ceiling Fan", url: "https://images.unsplash.com/photo-1594910069352-840801828f73?w=500&auto=format&fit=crop&q=60" },
-  { label: "Water Leakage", url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop&q=60" },
-  { label: "Broken Chair", url: "https://images.unsplash.com/photo-1503602642458-232111445657?w=500&auto=format&fit=crop&q=60" },
+  {
+    label: "Ceiling Fan",
+    url: "https://images.unsplash.com/photo-1594910069352-840801828f73?w=500&auto=format&fit=crop&q=60",
+  },
+  {
+    label: "Water Leakage",
+    url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop&q=60",
+  },
+  {
+    label: "Broken Chair",
+    url: "https://images.unsplash.com/photo-1503602642458-232111445657?w=500&auto=format&fit=crop&q=60",
+  },
 ];
 
-export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCreated }: RaiseTicketModalProps) {
+export function RaiseTicketModal({
+  open,
+  onOpenChange,
+  currentUser,
+  onTicketCreated,
+}: RaiseTicketModalProps) {
   const issueTypes = getIssueTypes();
   const [issueTypeId, setIssueTypeId] = useState(issueTypes[0]?.id || "");
   const [title, setTitle] = useState("");
@@ -31,7 +64,7 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
   const [location, setLocation] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<TicketFormErrors>({});
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -48,16 +81,18 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
   function handleSampleFill() {
     setIssueTypeId(issueTypes[0]?.id || "it-electrical");
     setTitle("Ceiling fan regulator sparking");
-    setDescription("When turning regulator dial to speed 4, sparks and burning smell observed from switchboard.");
+    setDescription(
+      "When turning regulator dial to speed 4, sparks and burning smell observed from switchboard.",
+    );
     setLocation("Room 305, Mechanical Block");
-    setPhotoUrl(SAMPLE_PHOTOS[0].url);
+    setPhotoUrl(SAMPLE_PHOTOS[0]?.url ?? "");
     setErrors({});
     toast.info("Sample ticket information loaded");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const nextErrors: Record<string, string> = {};
+    const nextErrors: TicketFormErrors = {};
     if (!issueTypeId) nextErrors.issueTypeId = "Please select an issue type.";
     if (!title.trim()) nextErrors.title = "Title is required.";
     if (!description.trim()) nextErrors.description = "Description is required.";
@@ -131,7 +166,8 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
               <SelectContent>
                 {issueTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
-                    {type.name} — <span className="text-muted-foreground text-xs">{type.description}</span>
+                    {type.name} —{" "}
+                    <span className="text-muted-foreground text-xs">{type.description}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -200,7 +236,9 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">Photo attached</p>
-                  <p className="text-[10px] text-muted-foreground">Will be visible to Campus Maintenance technicians</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Will be visible to Campus Maintenance technicians
+                  </p>
                 </div>
                 <Button
                   type="button"
@@ -217,8 +255,15 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
                 <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 p-4 cursor-pointer hover:border-primary/50 transition-colors">
                   <Upload className="h-5 w-5 text-muted-foreground mb-1" />
                   <span className="text-xs font-medium text-foreground">Click to upload photo</span>
-                  <span className="text-[10px] text-muted-foreground">or choose one from demo presets below</span>
-                  <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                  <span className="text-[10px] text-muted-foreground">
+                    or choose one from demo presets below
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
                 </label>
 
                 {/* Quick preset photo buttons */}
@@ -245,7 +290,11 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} className="min-w-28 font-semibold shadow-md">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="min-w-28 font-semibold shadow-md"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Submitting…
@@ -262,4 +311,3 @@ export function RaiseTicketModal({ open, onOpenChange, currentUser, onTicketCrea
     </Dialog>
   );
 }
-

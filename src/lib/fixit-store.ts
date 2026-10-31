@@ -13,7 +13,7 @@ export interface IssueType {
   id: string;
   name: string;
   description: string;
-  icon?: string;
+  icon?: string | undefined;
 }
 
 export interface Ticket {
@@ -24,12 +24,45 @@ export interface Ticket {
   issue_type_name: string;
   location: string;
   status: TicketStatus;
-  photo_url?: string;
+  photo_url?: string | undefined;
   created_by: string; // USN or email
   created_by_name: string;
-  created_by_role: "student" | "faculty" | "admin";
+  created_by_role: "student" | "faculty" | "office_staff" | "admin";
   created_at: string;
-  expected_by?: string; // TAT ISO date string
+  expected_by?: string | undefined; // TAT ISO date string
+  resolution_note?: string | undefined;
+  resolved_at?: string | undefined;
+  acknowledged_at?: string | undefined;
+}
+
+/** Shape of an issue-type item returned by the FixIt backend (fields may vary). */
+interface BackendIssueType {
+  issue_type_id?: string;
+  id?: string;
+  name?: string;
+  description?: string;
+  icon?: string;
+}
+
+/** Shape of a ticket item returned by the FixIt backend (fields may vary). */
+interface BackendTicket {
+  ticket_id?: string;
+  id?: string;
+  title?: string;
+  description?: string;
+  issue_type_id?: string;
+  issue_type_name?: string;
+  location?: string;
+  status?: string;
+  photo_url?: string;
+  photo?: { url?: string };
+  reported_by?: string;
+  created_by?: string;
+  reported_by_name?: string;
+  created_by_name?: string;
+  reported_by_role?: "student" | "faculty" | "admin";
+  created_at?: string;
+  expected_by?: string;
   resolution_note?: string;
   resolved_at?: string;
   acknowledged_at?: string;
@@ -37,6 +70,7 @@ export interface Ticket {
 
 const STORAGE_TICKETS_KEY = "campusos-fixit:tickets";
 const STORAGE_ISSUE_TYPES_KEY = "campusos-fixit:issue_types";
+const STORAGE_SEEDED_KEY = "campusos-fixit:demo_seeded";
 
 export const DEFAULT_ISSUE_TYPES: IssueType[] = [
   {
@@ -65,70 +99,195 @@ export const DEFAULT_ISSUE_TYPES: IssueType[] = [
   },
 ];
 
+/** ISO timestamp offset from now, so the demo dataset never goes stale. */
+function daysFromNow(offset: number): string {
+  return new Date(Date.now() + offset * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Demo tickets covering every issue category, all reported by Adithya. Loaded
+ * once on first run so each category has data to show; an empty list afterwards
+ * is respected.
+ */
 export const DEFAULT_TICKETS: Ticket[] = [
+  // ── Electrical ──────────────────────────────────────────────────────────
   {
-    id: "TK-1024",
-    title: "Fan not working",
-    description: "The ceiling fan in row 3 is vibrating heavily and not rotating at full speed.",
+    id: "TK-1001",
+    title: "Ceiling fan not working",
+    description: "The ceiling fan in Room 204 does not spin at any speed. Makes a humming noise.",
     issue_type_id: "it-electrical",
     issue_type_name: "Electrical",
-    location: "Classroom 204, Block B",
+    location: "Academic Block A · Room 204",
     status: "OPEN",
-    photo_url: "https://images.unsplash.com/photo-1594910069352-840801828f73?w=500&auto=format&fit=crop&q=60",
-    created_by: "1RV23CS099",
-    created_by_name: "Aarav Sharma",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
     created_by_role: "student",
-    created_at: "2026-10-12T09:30:00Z",
-    expected_by: "2026-10-13T17:00:00Z",
-  },
-  {
-    id: "TK-1018",
-    title: "Water leakage",
-    description: "Pipe under the third sink has a constant water leak causing a large puddle on the floor.",
-    issue_type_id: "it-plumbing",
-    issue_type_name: "Plumbing",
-    location: "Ground Floor Washroom, Main Block",
-    status: "IN_PROGRESS",
-    photo_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop&q=60",
-    created_by: "1RV18CS042",
-    created_by_name: "Dr. Priya Raman",
-    created_by_role: "faculty",
-    created_at: "2026-10-10T14:15:00Z",
-    expected_by: "2026-10-12T12:00:00Z", // Past date => OVERDUE
-  },
-  {
-    id: "TK-1005",
-    title: "Broken chair",
-    description: "Armrest detached from chair #14, exposed metal bracket is hazardous.",
-    issue_type_id: "it-furniture",
-    issue_type_name: "Furniture",
-    location: "Seminar Hall A",
-    status: "RESOLVED",
-    photo_url: "https://images.unsplash.com/photo-1503602642458-232111445657?w=500&auto=format&fit=crop&q=60",
-    created_by: "1RV23CS099",
-    created_by_name: "Aarav Sharma",
-    created_by_role: "student",
-    created_at: "2026-10-08T11:00:00Z",
-    expected_by: "2026-10-09T18:00:00Z",
-    resolved_at: "2026-10-09T16:20:00Z",
-    resolution_note: "Fan/bracket welded and tightened with heavy duty bolts. Replaced cushion pad.",
+    created_at: daysFromNow(-3),
+    expected_by: daysFromNow(2),
   },
   {
     id: "TK-1002",
-    title: "Projector HDMI signal failure",
-    description: "Ceiling projector fails to handshake with laptop HDMI cords. Audio works but video cuts out.",
+    title: "Corridor tube light flickering",
+    description: "Both tube lights in the first floor corridor flicker constantly.",
+    issue_type_id: "it-electrical",
+    issue_type_name: "Electrical",
+    location: "Academic Block A · 1st Floor Corridor",
+    status: "IN_PROGRESS",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-2),
+    expected_by: daysFromNow(1),
+  },
+  {
+    id: "TK-1003",
+    title: "Switch board sparking near Lab 3",
+    description: "The switch board outside Lab 3 sparks when a plug is inserted. Safety risk.",
+    issue_type_id: "it-electrical",
+    issue_type_name: "Electrical",
+    location: "Engineering Block · Lab 3",
+    status: "OPEN",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-4),
+    expected_by: daysFromNow(-1),
+  },
+
+  // ── Plumbing ────────────────────────────────────────────────────────────
+  {
+    id: "TK-1004",
+    title: "Water leakage under wash basin",
+    description: "Continuous drip from the pipe joint under the wash basin, floor stays wet.",
+    issue_type_id: "it-plumbing",
+    issue_type_name: "Plumbing",
+    location: "Hostel Block B · Washroom 2",
+    status: "IN_PROGRESS",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-2),
+    expected_by: daysFromNow(1),
+  },
+  {
+    id: "TK-1005",
+    title: "Drinking water tap broken",
+    description: "The tap handle at the water station snapped off; water keeps running.",
+    issue_type_id: "it-plumbing",
+    issue_type_name: "Plumbing",
+    location: "Canteen · Water Station",
+    status: "OPEN",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-1),
+    expected_by: daysFromNow(3),
+  },
+  {
+    id: "TK-1006",
+    title: "Toilet flush not working",
+    description: "Flush valve in the ground floor restroom does not release water.",
+    issue_type_id: "it-plumbing",
+    issue_type_name: "Plumbing",
+    location: "Academic Block C · Ground Floor Restroom",
+    status: "RESOLVED",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-6),
+    expected_by: daysFromNow(-2),
+    resolution_note: "Replaced the flush valve assembly and tested. Working normally.",
+    resolved_at: daysFromNow(-3),
+  },
+
+  // ── Furniture ───────────────────────────────────────────────────────────
+  {
+    id: "TK-1007",
+    title: "Broken chair in classroom",
+    description: "One chair in Room 108 has a cracked leg and wobbles badly.",
+    issue_type_id: "it-furniture",
+    issue_type_name: "Furniture",
+    location: "Academic Block B · Room 108",
+    status: "OPEN",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-2),
+    expected_by: daysFromNow(2),
+  },
+  {
+    id: "TK-1008",
+    title: "Whiteboard mounting loose",
+    description: "The whiteboard in Room 110 has come off its top-left mounting screw.",
+    issue_type_id: "it-furniture",
+    issue_type_name: "Furniture",
+    location: "Academic Block B · Room 110",
+    status: "IN_PROGRESS",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-1),
+    expected_by: daysFromNow(1),
+  },
+  {
+    id: "TK-1009",
+    title: "Podium table damaged",
+    description: "The seminar hall podium table has a shattered corner and is unsafe to use.",
+    issue_type_id: "it-furniture",
+    issue_type_name: "Furniture",
+    location: "Main Seminar Hall",
+    status: "RESOLVED",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-7),
+    expected_by: daysFromNow(-3),
+    resolution_note: "Replaced the podium with a spare unit from the store room.",
+    resolved_at: daysFromNow(-4),
+  },
+
+  // ── IT & Network ────────────────────────────────────────────────────────
+  {
+    id: "TK-1010",
+    title: "WiFi not connecting in Library",
+    description: "Campus WiFi keeps failing to authenticate on the library's second floor.",
     issue_type_id: "it-itnetwork",
     issue_type_name: "IT & Network",
-    location: "Lab 302, Tech Block",
-    status: "ACKNOWLEDGED",
-    created_by: "1RV18CS042",
-    created_by_name: "Dr. Priya Raman",
-    created_by_role: "faculty",
-    created_at: "2026-10-05T08:45:00Z",
-    expected_by: "2026-10-06T15:00:00Z",
-    resolved_at: "2026-10-06T13:10:00Z",
-    acknowledged_at: "2026-10-06T16:30:00Z",
-    resolution_note: "Replaced 15m optical HDMI extender cable behind podium.",
+    location: "Central Library · 2nd Floor",
+    status: "OPEN",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-1),
+    expected_by: daysFromNow(1),
+  },
+  {
+    id: "TK-1011",
+    title: "Projector not displaying",
+    description: "The projector in Room 301 powers on but shows no signal on any input.",
+    issue_type_id: "it-itnetwork",
+    issue_type_name: "IT & Network",
+    location: "Academic Block A · Room 301",
+    status: "IN_PROGRESS",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-5),
+    expected_by: daysFromNow(-1),
+  },
+  {
+    id: "TK-1012",
+    title: "LAN port dead at desk 12",
+    description: "No link light and no connectivity from the LAN port at Computer Lab 2, desk 12.",
+    issue_type_id: "it-itnetwork",
+    issue_type_name: "IT & Network",
+    location: "Computer Lab 2",
+    status: "OPEN",
+    created_by: "Adithya",
+    created_by_name: "Adithya",
+    created_by_role: "student",
+    created_at: daysFromNow(-1),
+    expected_by: daysFromNow(3),
   },
 ];
 
@@ -174,11 +333,13 @@ export function saveIssueTypes(types: IssueType[]): void {
 
 export async function syncIssueTypesFromBackend(): Promise<IssueType[]> {
   try {
-    const res = await apiRequest<{ items: any[]; count: number }>("/fixit/issue-types");
+    const res = await apiRequest<{ items: BackendIssueType[]; count: number }>(
+      "/fixit/issue-types",
+    );
     if (res && Array.isArray(res.items) && res.items.length > 0) {
       const mapped: IssueType[] = res.items.map((item) => ({
-        id: item.issue_type_id || item.id,
-        name: item.name,
+        id: item.issue_type_id || item.id || `it-${Date.now().toString(36)}`,
+        name: item.name || "General",
         description: item.description || "",
         icon: item.icon || "Wrench",
       }));
@@ -191,7 +352,11 @@ export async function syncIssueTypesFromBackend(): Promise<IssueType[]> {
   return getIssueTypes();
 }
 
-export function addIssueType(data: { name: string; description: string; icon?: string }): IssueType {
+export function addIssueType(data: {
+  name: string;
+  description: string;
+  icon?: string;
+}): IssueType {
   const types = getIssueTypes();
   const newType: IssueType = {
     id: `it-${Date.now().toString(36)}`,
@@ -213,8 +378,16 @@ export function addIssueType(data: { name: string; description: string; icon?: s
 export function updateIssueType(id: string, data: Partial<IssueType>): IssueType | null {
   const types = getIssueTypes();
   const idx = types.findIndex((t) => t.id === id);
-  if (idx === -1) return null;
-  types[idx] = { ...types[idx], ...data };
+  const existing = types[idx];
+  if (idx === -1 || !existing) return null;
+
+  const updatedType: IssueType = {
+    id: existing.id,
+    name: data.name ?? existing.name,
+    description: data.description ?? existing.description,
+    icon: data.icon ?? existing.icon,
+  };
+  types[idx] = updatedType;
   saveIssueTypes(types);
 
   apiRequest(`/fixit/issue-types/${id}`, {
@@ -222,7 +395,7 @@ export function updateIssueType(id: string, data: Partial<IssueType>): IssueType
     json: { name: data.name, description: data.description },
   }).catch(() => {});
 
-  return types[idx];
+  return updatedType;
 }
 
 export function deleteIssueType(id: string): boolean {
@@ -235,13 +408,30 @@ export function deleteIssueType(id: string): boolean {
   return true;
 }
 
+/** Bump this to merge a new batch of demo tickets into existing browsers. */
+const DEMO_SEED_VERSION = 2;
+
 export function getTickets(): Ticket[] {
-  const existing = readJson<Ticket[] | null>(STORAGE_TICKETS_KEY, null);
-  if (existing === null) {
+  const stored = readJson<Ticket[] | null>(STORAGE_TICKETS_KEY, null);
+  const version = readJson<number>(STORAGE_SEEDED_KEY, 0);
+
+  if (stored === null) {
+    writeJson(STORAGE_SEEDED_KEY, DEMO_SEED_VERSION);
     writeJson(STORAGE_TICKETS_KEY, DEFAULT_TICKETS);
     return DEFAULT_TICKETS;
   }
-  return existing;
+
+  if (version < DEMO_SEED_VERSION) {
+    // Add any demo ticket the store does not already have, leaving the user's
+    // own tickets untouched. Bumping the version re-runs this merge once.
+    const existingIds = new Set(stored.map((ticket) => ticket.id));
+    const merged = [...stored, ...DEFAULT_TICKETS.filter((ticket) => !existingIds.has(ticket.id))];
+    writeJson(STORAGE_SEEDED_KEY, DEMO_SEED_VERSION);
+    writeJson(STORAGE_TICKETS_KEY, merged);
+    return merged;
+  }
+
+  return stored;
 }
 
 export function saveTickets(tickets: Ticket[]): void {
@@ -250,37 +440,41 @@ export function saveTickets(tickets: Ticket[]): void {
 
 export async function syncTicketsFromBackend(): Promise<Ticket[]> {
   try {
-    const res = await apiRequest<{ items: any[]; count: number }>("/fixit/tickets");
+    const res = await apiRequest<{ items: BackendTicket[]; count: number }>("/fixit/tickets");
     if (res && Array.isArray(res.items) && res.items.length > 0) {
-      const mapped: Ticket[] = res.items.map((item) => ({
-        id: item.ticket_id || item.id,
-        title: item.title,
-        description: item.description,
-        issue_type_id: item.issue_type_id,
-        issue_type_name: item.issue_type_name || "General",
-        location: item.location || "Campus",
-        status: (item.status || "OPEN").toUpperCase() as TicketStatus,
-        photo_url: item.photo_url || item.photo?.url,
-        created_by: item.reported_by || item.created_by || "user",
-        created_by_name: item.reported_by_name || item.created_by_name || "Campus Member",
-        created_by_role: item.reported_by_role || "student",
-        created_at: item.created_at || new Date().toISOString(),
-        expected_by: item.expected_by,
-        resolution_note: item.resolution_note,
-        resolved_at: item.resolved_at,
-        acknowledged_at: item.acknowledged_at,
-      }));
+      const localById = new Map(getTickets().map((ticket) => [ticket.id, ticket]));
+      const mapped: Ticket[] = res.items.map((item) => {
+        const id = item.ticket_id || item.id || `TK-${Date.now().toString(36)}`;
+        const backendStatus = (item.status || "OPEN").toUpperCase() as TicketStatus;
+        const local = localById.get(id);
+        // The API only models "open" and "resolved", so an in-progress or
+        // acknowledged state we are tracking locally must survive the sync.
+        const keepLocalStatus =
+          backendStatus === "OPEN" &&
+          (local?.status === "IN_PROGRESS" || local?.status === "ACKNOWLEDGED");
 
-      // Merge with default seed tickets if not present
-      const combined = [...mapped];
-      for (const def of DEFAULT_TICKETS) {
-        if (!combined.some((c) => c.id === def.id)) {
-          combined.push(def);
-        }
-      }
+        return {
+          id,
+          title: item.title || "Untitled issue",
+          description: item.description || "",
+          issue_type_id: item.issue_type_id || "general",
+          issue_type_name: item.issue_type_name || "General",
+          location: item.location || "Campus",
+          status: keepLocalStatus && local ? local.status : backendStatus,
+          photo_url: item.photo_url || item.photo?.url,
+          created_by: item.reported_by || item.created_by || "user",
+          created_by_name: item.reported_by_name || item.created_by_name || "Campus Member",
+          created_by_role: item.reported_by_role || "student",
+          created_at: item.created_at || new Date().toISOString(),
+          expected_by: item.expected_by ?? local?.expected_by,
+          resolution_note: item.resolution_note ?? local?.resolution_note,
+          resolved_at: item.resolved_at ?? local?.resolved_at,
+          acknowledged_at: item.acknowledged_at ?? local?.acknowledged_at,
+        };
+      });
 
-      saveTickets(combined);
-      return combined;
+      saveTickets(mapped);
+      return mapped;
     }
   } catch {
     // Offline fallback
@@ -293,10 +487,10 @@ export function createTicket(payload: {
   description: string;
   issue_type_id: string;
   location: string;
-  photo_url?: string;
+  photo_url?: string | undefined;
   creatorName: string;
   creatorId: string;
-  creatorRole: "student" | "faculty" | "admin";
+  creatorRole: "student" | "faculty" | "office_staff" | "admin";
 }): Ticket {
   const tickets = getTickets();
   const issueTypes = getIssueTypes();
@@ -338,24 +532,27 @@ export function createTicket(payload: {
 
 export function updateTicket(
   id: string,
-  payload: Partial<Pick<Ticket, "title" | "description" | "location" | "issue_type_id" | "photo_url">>,
+  payload: Partial<
+    Pick<Ticket, "title" | "description" | "location" | "issue_type_id" | "photo_url">
+  >,
 ): Ticket | null {
   const tickets = getTickets();
   const idx = tickets.findIndex((t) => t.id === id);
-  if (idx === -1) return null;
-
   const current = tickets[idx];
+  if (idx === -1 || !current) return null;
+
   let typeName = current.issue_type_name;
   if (payload.issue_type_id && payload.issue_type_id !== current.issue_type_id) {
     const it = getIssueTypes().find((item) => item.id === payload.issue_type_id);
     if (it) typeName = it.name;
   }
 
-  tickets[idx] = {
+  const updatedTicket: Ticket = {
     ...current,
     ...payload,
     issue_type_name: typeName,
   };
+  tickets[idx] = updatedTicket;
   saveTickets(tickets);
 
   // Backend patch
@@ -364,8 +561,24 @@ export function updateTicket(
     json: payload,
   }).catch(() => {});
 
-  return tickets[idx];
+  return updatedTicket;
 }
+
+/** A ticket still needs work until it is RESOLVED or ACKNOWLEDGED. */
+export function isActiveTicket(ticket: Ticket): boolean {
+  return ticket.status === "OPEN" || ticket.status === "IN_PROGRESS";
+}
+
+/**
+ * The API only models `open` and `resolved`, and it rejects an empty note, so a
+ * status change without a comment still needs something to send.
+ */
+const STATUS_NOTES: Record<TicketStatus, string> = {
+  OPEN: "Reopened — work is back in the queue.",
+  IN_PROGRESS: "Work assigned — the maintenance team is on it.",
+  RESOLVED: "Issue resolved.",
+  ACKNOWLEDGED: "Ticket closed by the reporter.",
+};
 
 export function updateTicketStatus(
   id: string,
@@ -375,9 +588,9 @@ export function updateTicketStatus(
 ): Ticket | null {
   const tickets = getTickets();
   const idx = tickets.findIndex((t) => t.id === id);
-  if (idx === -1) return null;
-
   const current = tickets[idx];
+  if (idx === -1 || !current) return null;
+
   const updated: Ticket = {
     ...current,
     status: newStatus,
@@ -392,18 +605,20 @@ export function updateTicketStatus(
   tickets[idx] = updated;
   saveTickets(tickets);
 
-  // Call backend status & tat endpoints
-  const apiStatus = newStatus === "IN_PROGRESS" ? "open" : newStatus.toLowerCase();
+  // Call backend status & tat endpoints. The API accepts only `open`/`resolved`,
+  // and StatusSet requires a note of 1-280 characters, so never send "".
+  const apiStatus = newStatus === "RESOLVED" ? "resolved" : "open";
+  const note = (resolutionNote?.trim() || STATUS_NOTES[newStatus]).slice(0, 280);
   apiRequest(`/fixit/tickets/${id}/status`, {
     method: "PUT",
-    json: { status: apiStatus, note: resolutionNote || "" },
+    json: { status: apiStatus, note },
   }).catch(() => {});
 
   if (expectedBy) {
     const dateOnly = expectedBy.split("T")[0];
     apiRequest(`/fixit/tickets/${id}/tat`, {
       method: "PUT",
-      json: { expected_by: dateOnly, note: resolutionNote || "" },
+      json: { expected_by: dateOnly, note: resolutionNote?.trim() || null },
     }).catch(() => {});
   }
 
@@ -413,20 +628,22 @@ export function updateTicketStatus(
 export function acknowledgeTicket(id: string): Ticket | null {
   const tickets = getTickets();
   const idx = tickets.findIndex((t) => t.id === id);
-  if (idx === -1) return null;
+  const current = tickets[idx];
+  if (idx === -1 || !current) return null;
 
-  tickets[idx] = {
-    ...tickets[idx],
+  const updated: Ticket = {
+    ...current,
     status: "ACKNOWLEDGED",
     acknowledged_at: new Date().toISOString(),
   };
+  tickets[idx] = updated;
   saveTickets(tickets);
 
   apiRequest(`/fixit/tickets/${id}/acknowledge`, {
     method: "POST",
   }).catch(() => {});
 
-  return tickets[idx];
+  return updated;
 }
 
 export function deleteTicket(id: string): boolean {
@@ -445,7 +662,10 @@ export function deleteTicket(id: string): boolean {
 export function computeFixItStats(tickets: Ticket[], currentUserId?: string | null) {
   const total = tickets.length;
   const open = tickets.filter((t) => t.status === "OPEN" || t.status === "IN_PROGRESS").length;
-  const resolved = tickets.filter((t) => t.status === "RESOLVED" || t.status === "ACKNOWLEDGED").length;
+  const resolved = tickets.filter(
+    (t) => t.status === "RESOLVED" || t.status === "ACKNOWLEDGED",
+  ).length;
+  const inProgress = tickets.filter((t) => t.status === "IN_PROGRESS").length;
   const overdue = tickets.filter(isTicketOverdue).length;
   const myTickets = currentUserId
     ? tickets.filter(
@@ -455,5 +675,5 @@ export function computeFixItStats(tickets: Ticket[], currentUserId?: string | nu
       ).length
     : tickets.length;
 
-  return { total, open, resolved, overdue, myTickets };
+  return { total, open, resolved, inProgress, overdue, myTickets };
 }

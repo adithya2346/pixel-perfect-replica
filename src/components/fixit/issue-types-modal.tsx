@@ -117,9 +117,13 @@ export function IssueTypesModal({ open, onOpenChange, onTypesUpdated }: IssueTyp
 
         {/* Add / Edit Form */}
         {(isAdding || editingId) && (
-          <form onSubmit={handleSave} className="rounded-xl border border-primary/40 bg-primary/5 p-4 space-y-3">
+          <form
+            onSubmit={handleSave}
+            className="rounded-xl border border-primary/40 bg-primary/5 p-4 space-y-3"
+          >
             <h4 className="font-semibold text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" /> {editingId ? "Edit Category" : "Add New Category"}
+              <Sparkles className="h-3.5 w-3.5" />{" "}
+              {editingId ? "Edit Category" : "Add New Category"}
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -146,7 +150,13 @@ export function IssueTypesModal({ open, onOpenChange, onTypesUpdated }: IssueTyp
             </div>
 
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" size="sm" onClick={cancelForm} className="h-8 text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={cancelForm}
+                className="h-8 text-xs"
+              >
                 Cancel
               </Button>
               <Button type="submit" size="sm" className="h-8 text-xs">
@@ -205,4 +215,3 @@ export function IssueTypesModal({ open, onOpenChange, onTypesUpdated }: IssueTyp
     </Dialog>
   );
 }
-

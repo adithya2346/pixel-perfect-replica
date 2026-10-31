@@ -13,7 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { updateTicketStatus, type Ticket, type TicketStatus } from "@/lib/fixit-store";
 
@@ -24,10 +30,31 @@ interface UpdateStatusModalProps {
   onUpdated: () => void;
 }
 
-export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: UpdateStatusModalProps) {
+/** Today's date in India (Asia/Calcutta) as YYYY-MM-DD, matching the backend TAT rule. */
+function indiaToday(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Calcutta" });
+}
+
+/**
+ * Combine the picked date + time into the stored deadline. The value is built as
+ * UTC so the backend receives exactly the date the admin chose.
+ */
+function toDeadlineIso(date: string, time: string): string | null {
+  if (!date || !time) return null;
+  const parsed = new Date(`${date}T${time}:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+export function UpdateStatusModal({
+  ticket,
+  open,
+  onOpenChange,
+  onUpdated,
+}: UpdateStatusModalProps) {
   const [status, setStatus] = useState<TicketStatus>("IN_PROGRESS");
   const [resolutionNote, setResolutionNote] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
+  const [expectedTime, setExpectedTime] = useState("18:00");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,10 +62,14 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
       setStatus(ticket.status === "ACKNOWLEDGED" ? "RESOLVED" : ticket.status);
       setResolutionNote(ticket.resolution_note || "");
       if (ticket.expected_by) {
-        setExpectedDate(ticket.expected_by.split("T")[0]);
+        setExpectedDate(ticket.expected_by.split("T")[0] ?? "");
+        setExpectedTime(ticket.expected_by.split("T")[1]?.slice(0, 5) ?? "18:00");
       } else {
-        const nextDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-        setExpectedDate(nextDay);
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", {
+          timeZone: "Asia/Calcutta",
+        });
+        setExpectedDate(tomorrow);
+        setExpectedTime("18:00");
       }
     }
   }, [ticket]);
@@ -54,12 +85,20 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
       return;
     }
 
+    const deadlineIso = toDeadlineIso(expectedDate, expectedTime);
+    if (!deadlineIso) {
+      toast.error("Set a valid expected completion date and time.");
+      return;
+    }
+    if (new Date(deadlineIso).getTime() <= Date.now()) {
+      toast.error("Expected completion must be in the future — pick a later date or time.");
+      return;
+    }
+
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 450));
 
-    const expectedIso = expectedDate ? new Date(`${expectedDate}T18:00:00Z`).toISOString() : undefined;
-
-    updateTicketStatus(ticket.id, status, resolutionNote.trim() || undefined, expectedIso);
+    updateTicketStatus(ticket.id, status, resolutionNote.trim() || undefined, deadlineIso);
 
     setSubmitting(false);
     toast.success(`Ticket ${ticket.id} updated to ${status}`);
@@ -90,11 +129,15 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
           {/* Ticket ID & Current Status Info */}
           <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 p-3">
             <div>
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Ticket ID</span>
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">
+                Ticket ID
+              </span>
               <span className="font-mono text-sm font-bold text-foreground">{ticket.id}</span>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Current Status</span>
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">
+                Current Status
+              </span>
               <span className="text-xs font-semibold text-primary">{ticket.status}</span>
             </div>
           </div>
@@ -118,24 +161,41 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
 
           {/* Turnaround Time (TAT) / Expected Date */}
           <div className="space-y-1.5">
-            <Label htmlFor="expected-date" className="text-xs font-semibold flex items-center justify-between">
+            <Label
+              htmlFor="expected-date"
+              className="text-xs font-semibold flex items-center justify-between"
+            >
               <span>Expected Completion Date (TAT)</span>
               <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3 text-amber-400" /> Overdue trigger
               </span>
             </Label>
-            <div className="relative">
-              <Input
-                id="expected-date"
-                type="date"
-                value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
-                className="h-10 pl-9"
-              />
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <Input
+                  id="expected-date"
+                  type="date"
+                  min={indiaToday()}
+                  value={expectedDate}
+                  onChange={(e) => setExpectedDate(e.target.value)}
+                  className="h-10 pl-9"
+                />
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+              <div className="relative">
+                <Input
+                  id="expected-time"
+                  type="time"
+                  value={expectedTime}
+                  onChange={(e) => setExpectedTime(e.target.value)}
+                  className="h-10 pl-9"
+                />
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Tickets will be flagged as <strong className="text-destructive">Overdue</strong> if not resolved before this date.
+              Must be a future date and time (India time). Tickets will be flagged as{" "}
+              <strong className="text-destructive">Overdue</strong> if not resolved before this.
             </p>
           </div>
 
@@ -162,7 +222,11 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} className="min-w-28 font-semibold shadow-md">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="min-w-28 font-semibold shadow-md"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Updating…
@@ -179,4 +243,3 @@ export function UpdateStatusModal({ ticket, open, onOpenChange, onUpdated }: Upd
     </Dialog>
   );
 }
-

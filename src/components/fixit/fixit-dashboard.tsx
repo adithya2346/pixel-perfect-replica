@@ -4,14 +4,10 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
-  ClipboardList,
-  Compass,
-  FileText,
+  Clock,
   GraduationCap,
-  Home,
   LogOut,
   MapPin,
-  Megaphone,
   Plus,
   Presentation,
   Search,
@@ -28,13 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandMark } from "@/components/auth/auth-layout";
-import {
-  clearSession,
-  getSession,
-  setSession,
-  type AuthSession,
-  type DashboardRole,
-} from "@/lib/mock-auth";
+import { clearSession, getSession, type AuthSession, type DashboardRole } from "@/lib/mock-auth";
 import {
   computeFixItStats,
   getIssueTypes,
@@ -49,6 +39,9 @@ import { RaiseTicketModal } from "./raise-ticket-modal";
 import { TicketDetailsModal } from "./ticket-details-modal";
 import { UpdateStatusModal } from "./update-status-modal";
 import { IssueTypesModal } from "./issue-types-modal";
+import { ManageUsersModal } from "./manage-users-modal";
+import { ManageStaffModal } from "./manage-staff-modal";
+import { IssueStaffPanel } from "./issue-staff-panel";
 
 interface FixItDashboardProps {
   role: DashboardRole;
@@ -58,7 +51,7 @@ type FilterTab = "ALL" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "OVERDUE" | "MY_T
 
 export function FixItDashboard({ role }: FixItDashboardProps) {
   const navigate = useNavigate();
-  const [session, setLocalSession] = useState<AuthSession | null>(getSession());
+  const [session] = useState<AuthSession | null>(getSession());
   const [tickets, setTickets] = useState<Ticket[]>(getTickets());
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [selectedIssueType, setSelectedIssueType] = useState<string>("ALL");
@@ -69,6 +62,8 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   const [detailsTicket, setDetailsTicket] = useState<Ticket | null>(null);
   const [statusTicket, setStatusTicket] = useState<Ticket | null>(null);
   const [issueTypesOpen, setIssueTypesOpen] = useState(false);
+  const [usersOpen, setUsersOpen] = useState(false);
+  const [staffOpen, setStaffOpen] = useState(false);
 
   // Active nav item
   const [activeNav, setActiveNav] = useState("fixit");
@@ -102,21 +97,6 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
     clearSession();
     toast.success("Signed out of CampusOS – FixIt.");
     navigate({ to: "/" });
-  }
-
-  function switchRole(newRole: DashboardRole) {
-    const updated: AuthSession =
-      newRole === "admin"
-        ? { name: "Team 41 Admin", usn: null, role: "admin" }
-        : newRole === "faculty"
-          ? { name: "Dr. Priya Raman", usn: "1RV18CS042", role: "faculty" }
-          : newRole === "office_staff"
-            ? { name: "Ramesh Kumar", usn: "STF-2024-08", role: "office_staff" }
-            : { name: "Aarav Sharma", usn: "1RV23CS099", role: "student" };
-    setSession(updated);
-    setLocalSession(updated);
-    toast.info(`Switched view to ${newRole.toUpperCase().replace("_", " ")}`);
-    navigate({ to: "/dashboard/$role", params: { role: newRole } });
   }
 
   const stats = useMemo(() => {
@@ -196,13 +176,9 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   };
 
   const SIDEBAR_ITEMS = [
-    { id: "home", label: "Home", icon: Home },
-    { id: "findit", label: "FindIt", icon: Compass },
-    { id: "notice", label: "Notice Hub", icon: Megaphone },
-    { id: "docdesk", label: "DocDesk", icon: FileText },
     { id: "fixit", label: "FixIt", icon: Wrench },
     { id: "profile", label: "Profile", icon: User },
-  ];
+  ] as const;
 
   const activeNavItem = SIDEBAR_ITEMS.find((item) => item.id === activeNav) ?? SIDEBAR_ITEMS[0];
   const ActiveNavIcon = activeNavItem.icon;
@@ -244,63 +220,46 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                 </button>
               );
             })}
+
+            {isCmOrAdmin && (
+              <div className="mt-3 border-t border-border pt-3 space-y-1">
+                {/* Parent category */}
+                <button
+                  type="button"
+                  onClick={() => setIssueTypesOpen(true)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-secondary/50"
+                >
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span>Manage Issue Types</span>
+                </button>
+
+                {/* Sub category of Manage Issue Types */}
+                <div className="ml-3 border-l border-border/70 pl-2">
+                  <button
+                    type="button"
+                    onClick={() => setStaffOpen(true)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-all hover:text-foreground"
+                  >
+                    <Users className="h-3 w-3" /> Manage Staff
+                  </button>
+                </div>
+
+                {/* Individual category */}
+                <button
+                  type="button"
+                  onClick={() => setUsersOpen(true)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-secondary/50"
+                >
+                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                  <span>Manage Users</span>
+                </button>
+              </div>
+            )}
           </nav>
         </div>
 
-        {/* Sidebar Footer: Quick Role Switcher for Demo + Logout */}
+        {/* Sidebar Footer: Logout */}
         <div className="p-3 border-t border-border space-y-2">
-          <div className="rounded-xl border border-border/70 bg-secondary/30 p-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 flex items-center gap-1">
-              <Users className="h-3 w-3" /> Demo Role Switcher
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => switchRole("student")}
-                className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
-                  currentUser.role === "student"
-                    ? "bg-primary text-primary-foreground font-bold"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Student
-              </button>
-              <button
-                type="button"
-                onClick={() => switchRole("faculty")}
-                className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
-                  currentUser.role === "faculty"
-                    ? "bg-accent text-accent-foreground font-bold"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Faculty
-              </button>
-              <button
-                type="button"
-                onClick={() => switchRole("office_staff")}
-                className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
-                  currentUser.role === "office_staff"
-                    ? "bg-amber-600 text-white font-bold"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Office Staff
-              </button>
-              <button
-                type="button"
-                onClick={() => switchRole("admin")}
-                className={`text-[10px] py-1 px-1.5 rounded-md font-medium text-center transition-colors ${
-                  currentUser.role === "admin"
-                    ? "bg-destructive text-destructive-foreground font-bold"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Admin / CM
-              </button>
-            </div>
-          </div>
-
           <Button
             variant="ghost"
             size="sm"
@@ -388,23 +347,14 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 shrink-0">
-                {isCmOrAdmin && (
+                {!isCmOrAdmin && (
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIssueTypesOpen(true)}
-                    className="gap-1.5 h-10 border-border hover:border-primary/50 text-xs font-semibold"
+                    onClick={() => setRaiseOpen(true)}
+                    className="gap-1.5 h-10 font-semibold shadow-md bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    <Tag className="h-3.5 w-3.5 text-primary" /> Manage Issue Types
+                    <Plus className="h-4 w-4" /> Raise a Ticket
                   </Button>
                 )}
-
-                <Button
-                  onClick={() => setRaiseOpen(true)}
-                  className="gap-1.5 h-10 font-semibold shadow-md bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4" /> Raise a Ticket
-                </Button>
               </div>
             </div>
 
@@ -458,28 +408,28 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                 <p className="mt-1 text-[11px] text-muted-foreground">Fixed & closed</p>
               </button>
 
-              {/* My Tickets */}
+              {/* In Progress Work */}
               <button
                 type="button"
-                onClick={() => setActiveTab("MY_TICKETS")}
+                onClick={() => setActiveTab("IN_PROGRESS")}
                 className={`p-4 rounded-2xl border text-left transition-all ${
-                  activeTab === "MY_TICKETS"
+                  activeTab === "IN_PROGRESS"
                     ? "border-primary bg-primary/10 shadow-[0_0_24px_-10px_var(--glow)]"
                     : "border-border bg-card/40 hover:border-primary/40 hover:bg-card/70"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    My Tickets
+                    In Progress Work
                   </span>
                   <div className="h-7 w-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                    <ClipboardList className="h-4 w-4" />
+                    <Clock className="h-4 w-4" />
                   </div>
                 </div>
                 <div className="mt-2 font-display text-2xl sm:text-3xl font-bold text-foreground">
-                  {stats.myTickets}
+                  {stats.inProgress}
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Created by you</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Currently being worked on</p>
               </button>
 
               {/* Overdue */}
@@ -536,22 +486,6 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                     </button>
                   ))}
                 </div>
-
-                {/* Category Dropdown Filter */}
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selectedIssueType}
-                    onChange={(e) => setSelectedIssueType(e.target.value)}
-                    className="h-9 rounded-xl border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="ALL">All Categories</option>
-                    {issueTypes.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               {/* Search Input */}
@@ -565,6 +499,17 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                 />
               </div>
             </div>
+
+            {/* ────────────────────── Staff on this Issue Type (Admin) ────────────────────── */}
+            {isCmOrAdmin && selectedIssueType !== "ALL" && (
+              <IssueStaffPanel
+                issueTypeId={selectedIssueType}
+                issueTypeName={
+                  issueTypes.find((t) => t.id === selectedIssueType)?.name ?? selectedIssueType
+                }
+                tickets={tickets}
+              />
+            )}
 
             {/* ────────────────────── Tickets List / Table (Matching Wireframes 2 & 4) ────────────────────── */}
             <section className="space-y-3">
@@ -738,6 +683,9 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
         onOpenChange={setIssueTypesOpen}
         onTypesUpdated={() => refreshTickets()}
       />
+
+      <ManageUsersModal open={usersOpen} onOpenChange={setUsersOpen} />
+      <ManageStaffModal open={staffOpen} onOpenChange={setStaffOpen} tickets={tickets} />
     </div>
   );
 }

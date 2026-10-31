@@ -19,7 +19,7 @@ export interface AuthSession {
   name: string;
   usn: string | null;
   role: DashboardRole;
-  teamId?: string;
+  teamId?: string | undefined;
 }
 
 /** Predefined frontend demo credentials for the Team 41 administrator portal. */
@@ -27,19 +27,32 @@ export const ADMIN_DEMO = {
   name: "Team 41 Admin",
   email: "admin@team41.com",
   phone: "9000000041",
-  otp: "472719",
+  otp: "657257",
 } as const;
 
 export const ADMIN_DEMO_TEAM42 = {
   name: "Team 42 Admin",
   email: "admin@team42.com",
   phone: "9000000042",
-  otp: "472719",
+  otp: "657257",
 } as const;
 
 export const USN_PATTERN = /^[0-9A-Za-z]{1,4}[0-9]{2}[A-Za-z]{2,4}[0-9]{3}$/;
 export const MOBILE_PATTERN = /^[6-9][0-9]{9}$/;
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export function normalizeUsn(val: string): string {
+  return (val || "").trim().toUpperCase();
+}
+
+export function normalizeEmail(val: string): string {
+  return (val || "").trim().toLowerCase();
+}
+
+export function normalizePhone(val: string): string {
+  const digits = (val || "").replace(/[^0-9]/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
 
 export function validateUsn(value: string): string | null {
   const v = value.trim();
@@ -113,15 +126,28 @@ export const DEFAULT_USERS: RegisteredUser[] = [
     mobile: "9876543211",
     role: "office_staff",
   },
+  {
+    id: "demo-student-mithun",
+    fullName: "Mithun Chawan",
+    usn: "1CF24CS042",
+    email: "mithun@team42.com",
+    mobile: "9876500042",
+    role: "student",
+  },
 ];
 
 export function getRegisteredUsers(): RegisteredUser[] {
   const existing = readJson<RegisteredUser[] | null>(USERS_KEY, null);
-  if (existing === null) {
+  if (!existing || existing.length === 0) {
     writeJson(USERS_KEY, DEFAULT_USERS);
     return DEFAULT_USERS;
   }
   return existing;
+}
+
+export function getLatestRegisteredUser(): RegisteredUser | null {
+  const users = getRegisteredUsers();
+  return users[users.length - 1] ?? null;
 }
 
 function saveUsers(users: RegisteredUser[]): void {
@@ -131,16 +157,17 @@ function saveUsers(users: RegisteredUser[]): void {
 /** Returns a human-readable conflict message, or null when the details are free. */
 export function findRegistrationConflict(details: NewRegistration): string | null {
   const users = getRegisteredUsers();
-  const usn = details.usn.trim().toUpperCase();
-  const email = details.email.trim().toLowerCase();
-  const mobile = details.mobile.trim();
-  if (users.some((u) => u.usn.toUpperCase() === usn)) {
+  const usn = normalizeUsn(details.usn);
+  const email = normalizeEmail(details.email);
+  const phone = normalizePhone(details.mobile);
+
+  if (users.some((u) => normalizeUsn(u.usn) === usn)) {
     return "This USN is already registered. Try signing in instead.";
   }
-  if (users.some((u) => u.email.toLowerCase() === email)) {
+  if (users.some((u) => normalizeEmail(u.email) === email)) {
     return "This email address is already registered. Try signing in instead.";
   }
-  if (users.some((u) => u.mobile === mobile)) {
+  if (phone && users.some((u) => normalizePhone(u.mobile) === phone)) {
     return "This mobile number is already registered. Try signing in instead.";
   }
   return null;
@@ -154,23 +181,28 @@ export function registerUser(
   const user: RegisteredUser = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     fullName: details.fullName.trim(),
-    usn: details.usn.trim().toUpperCase(),
-    email: details.email.trim().toLowerCase(),
-    mobile: details.mobile.trim(),
+    usn: normalizeUsn(details.usn),
+    email: normalizeEmail(details.email),
+    mobile: normalizePhone(details.mobile) || details.mobile.trim(),
     role: details.role,
   };
   saveUsers([...getRegisteredUsers(), user]);
   return { ok: true, user };
 }
 
+/** Finds the account whose USN matches and whose email or mobile matches the given contact. */
 export function findUserByLogin(usn: string, contact: string): RegisteredUser | null {
-  const normalizedUsn = usn.trim().toUpperCase();
-  const normalizedContact = contact.trim().toLowerCase().replace(/\s+/g, "");
+  const cleanUsn = normalizeUsn(usn);
+  const cleanEmail = normalizeEmail(contact);
+  const cleanPhone = normalizePhone(contact);
+
+  if (!cleanUsn || (!cleanEmail && !cleanPhone)) return null;
+
   return (
     getRegisteredUsers().find(
       (user) =>
-        user.usn.toUpperCase() === normalizedUsn &&
-        (user.email.toLowerCase() === normalizedContact || user.mobile === normalizedContact),
+        normalizeUsn(user.usn) === cleanUsn &&
+        (normalizeEmail(user.email) === cleanEmail || normalizePhone(user.mobile) === cleanPhone),
     ) ?? null
   );
 }
@@ -222,6 +254,59 @@ export interface AuthBackendResult {
     email_id?: string;
   };
   error?: string;
+}
+
+export interface OtpSignInResult {
+  ok: boolean;
+  profile?: AuthBackendResult["profile"];
+  error?: string;
+}
+
+/**
+ * Single passwordless sign-in used by the unified login page. Resolves the account
+ * for both regular users and administrators from just an email ID and the one-time
+ * code the user received out-of-band. The code is never generated or shown here.
+ */
+export async function signInWithOtp(email: string, otp: string): Promise<OtpSignInResult> {
+  const cleanEmail = normalizeEmail(email);
+  const cleanOtp = otp.trim();
+
+  // Predefined frontend administrator accounts. The live backend issues a real
+  // token for these, which the admin endpoints require, so try it first and only
+  // fall back to the local check when the backend is unreachable.
+  if (cleanEmail === ADMIN_DEMO.email || cleanEmail === ADMIN_DEMO_TEAM42.email) {
+    const adminAttempt = await authenticateWithLiveBackend(cleanEmail, cleanOtp, true);
+    if (adminAttempt.ok && adminAttempt.profile) {
+      return { ok: true, profile: adminAttempt.profile };
+    }
+    if (cleanOtp === ADMIN_DEMO.otp) {
+      const name = cleanEmail === ADMIN_DEMO.email ? ADMIN_DEMO.name : ADMIN_DEMO_TEAM42.name;
+      return {
+        ok: true,
+        profile: { role: "admin", name, team_id: "team41", email_id: cleanEmail },
+      };
+    }
+    return {
+      ok: false,
+      error: adminAttempt.error || "Incorrect one-time code for this administrator account.",
+    };
+  }
+
+  // Live backend: try the regular account endpoint first, then the admin endpoint.
+  const userAttempt = await authenticateWithLiveBackend(cleanEmail, cleanOtp, false);
+  if (userAttempt.ok && userAttempt.profile) {
+    return { ok: true, profile: userAttempt.profile };
+  }
+
+  const adminAttempt = await authenticateWithLiveBackend(cleanEmail, cleanOtp, true);
+  if (adminAttempt.ok && adminAttempt.profile) {
+    return { ok: true, profile: adminAttempt.profile };
+  }
+
+  return {
+    ok: false,
+    error: userAttempt.error || adminAttempt.error || "Invalid email or one-time code.",
+  };
 }
 
 export async function authenticateWithLiveBackend(

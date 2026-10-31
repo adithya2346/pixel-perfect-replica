@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ADMIN_DEMO,
-  ADMIN_DEMO_TEAM42,
   matchesAdminCredentials,
   simulateDelay,
   validateEmail,
@@ -21,7 +20,11 @@ interface AdminLoginFormProps {
 export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; phone?: string; form?: string }>({});
+  const [errors, setErrors] = useState<{
+    email?: string | undefined;
+    phone?: string | undefined;
+    form?: string | undefined;
+  }>({});
   const [loading, setLoading] = useState(false);
 
   function fillCredentials(adminEmail: string, adminPhone: string) {
@@ -89,15 +92,6 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
         >
           <Sparkles className="mr-1.5 h-3 w-3 text-destructive" /> Fill Team 41 Admin
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fillCredentials(ADMIN_DEMO_TEAM42.email, ADMIN_DEMO_TEAM42.phone)}
-          className="h-8 border-border bg-secondary/40 text-xs text-muted-foreground hover:bg-secondary/70"
-        >
-          Team 42 Demo
-        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -108,7 +102,7 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@team41.com"
+            placeholder="Enter admin email"
             autoComplete="off"
             className="h-11"
           />
@@ -122,7 +116,7 @@ export function AdminLoginForm({ onOtpRequired }: AdminLoginFormProps) {
             inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="9000000041"
+            placeholder="Enter admin phone number"
             autoComplete="off"
             className="h-11"
           />

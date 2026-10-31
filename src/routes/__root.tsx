@@ -85,7 +85,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "CampusOS – FixIt" },
       {
         property: "og:description",
-        content: "Campus maintenance ticketing, status updates, turnaround time tracking, and issue management.",
+        content:
+          "Campus maintenance ticketing, status updates, turnaround time tracking, and issue management.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

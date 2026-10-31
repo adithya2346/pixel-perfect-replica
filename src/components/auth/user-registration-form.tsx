@@ -21,6 +21,15 @@ interface UserRegistrationFormProps {
   onOtpRequired: (details: NewRegistration) => string | null;
 }
 
+interface RegistrationErrors {
+  fullName?: string | undefined;
+  usn?: string | undefined;
+  email?: string | undefined;
+  mobile?: string | undefined;
+  role?: string | undefined;
+  form?: string | undefined;
+}
+
 const ROLE_OPTIONS: { value: UserRole; label: string; icon: typeof GraduationCap }[] = [
   { value: "student", label: "Student", icon: GraduationCap },
   { value: "faculty", label: "Faculty", icon: Presentation },
@@ -32,12 +41,12 @@ export function UserRegistrationForm({ initialValues, onOtpRequired }: UserRegis
   const [email, setEmail] = useState(initialValues?.email ?? "");
   const [mobile, setMobile] = useState(initialValues?.mobile ?? "");
   const [role, setRole] = useState<UserRole | null>(initialValues?.role ?? null);
-  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [errors, setErrors] = useState<RegistrationErrors>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const nextErrors: Record<string, string | undefined> = {
+    const nextErrors: RegistrationErrors = {
       fullName: fullName.trim() ? undefined : "Full name is required.",
       usn: validateUsn(usn) ?? undefined,
       email: validateEmail(email) ?? undefined,

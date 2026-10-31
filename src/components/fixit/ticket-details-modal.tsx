@@ -39,7 +39,7 @@ interface TicketDetailsModalProps {
   ticket: Ticket | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: { name: string; id: string; role: "student" | "faculty" | "admin" };
+  currentUser: { name: string; id: string; role: "student" | "faculty" | "office_staff" | "admin" };
   onTicketUpdated: () => void;
   onOpenStatusModal?: (ticket: Ticket) => void;
 }
@@ -65,19 +65,19 @@ export function TicketDetailsModal({
     ticket.created_by.toLowerCase() === currentUser.id.toLowerCase() ||
     ticket.created_by_name.toLowerCase() === currentUser.name.toLowerCase();
   const isCmOrAdmin = currentUser.role === "admin";
-  const canEdit = isReporter && ticket.status === "OPEN";
+  const canEdit = isCmOrAdmin || (isReporter && ticket.status === "OPEN");
   const canDelete = (isReporter && ticket.status === "OPEN") || isCmOrAdmin;
   const canAcknowledge = isReporter && ticket.status === "RESOLVED";
 
-  function startEdit() {
+  const startEdit = () => {
     setEditTitle(ticket.title);
     setEditDesc(ticket.description);
     setEditLocation(ticket.location);
     setEditPhoto(ticket.photo_url);
     setEditing(true);
-  }
+  };
 
-  function handleSaveEdit() {
+  const handleSaveEdit = () => {
     if (!editTitle.trim() || !editDesc.trim() || !editLocation.trim()) {
       toast.error("Please fill all required fields.");
       return;
@@ -91,25 +91,25 @@ export function TicketDetailsModal({
     setEditing(false);
     toast.success("Ticket details updated successfully.");
     onTicketUpdated();
-  }
+  };
 
-  function handleDelete() {
+  const handleDelete = () => {
     if (confirm(`Are you sure you want to delete ticket ${ticket.id}?`)) {
       deleteTicket(ticket.id);
       toast.success(`Ticket ${ticket.id} deleted.`);
       onOpenChange(false);
       onTicketUpdated();
     }
-  }
+  };
 
-  function handleAcknowledge() {
+  const handleAcknowledge = () => {
     acknowledgeTicket(ticket.id);
     toast.success(`Thank you! Ticket ${ticket.id} marked as acknowledged and closed.`);
     onOpenChange(false);
     onTicketUpdated();
-  }
+  };
 
-  function handleDownloadPhoto() {
+  const handleDownloadPhoto = () => {
     if (!ticket.photo_url) return;
     const a = document.createElement("a");
     a.href = ticket.photo_url;
@@ -119,18 +119,40 @@ export function TicketDetailsModal({
     a.click();
     document.body.removeChild(a);
     toast.success("Photo opened / download initiated");
-  }
+  };
 
   const getStatusBadge = () => {
     switch (ticket.status) {
       case "OPEN":
-        return <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-400">Open</Badge>;
+        return (
+          <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-400">
+            Open
+          </Badge>
+        );
       case "IN_PROGRESS":
-        return <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400">In Progress</Badge>;
+        return (
+          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400">
+            In Progress
+          </Badge>
+        );
       case "RESOLVED":
-        return <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400">Resolved</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+          >
+            Resolved
+          </Badge>
+        );
       case "ACKNOWLEDGED":
-        return <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-400">Acknowledged / Closed</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="border-purple-500/40 bg-purple-500/10 text-purple-400"
+          >
+            Acknowledged / Closed
+          </Badge>
+        );
     }
   };
 
@@ -141,7 +163,9 @@ export function TicketDetailsModal({
           <DialogTitle className="sr-only">Ticket Details - {ticket.id}</DialogTitle>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="font-mono text-lg font-bold tracking-tight text-foreground">{ticket.id}</span>
+              <span className="font-mono text-lg font-bold tracking-tight text-foreground">
+                {ticket.id}
+              </span>
               {getStatusBadge()}
               {overdue && (
                 <Badge variant="destructive" className="gap-1 animate-pulse">
@@ -152,12 +176,22 @@ export function TicketDetailsModal({
 
             <div className="flex items-center gap-2 pr-4">
               {canEdit && !editing && (
-                <Button variant="outline" size="sm" onClick={startEdit} className="h-8 gap-1.5 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startEdit}
+                  className="h-8 gap-1.5 text-xs"
+                >
                   <Edit2 className="h-3.5 w-3.5" /> Edit
                 </Button>
               )}
               {canDelete && (
-                <Button variant="ghost" size="sm" onClick={handleDelete} className="h-8 text-destructive hover:bg-destructive/10 text-xs gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  className="h-8 text-destructive hover:bg-destructive/10 text-xs gap-1.5"
+                >
                   <Trash2 className="h-3.5 w-3.5" /> Delete
                 </Button>
               )}
@@ -222,7 +256,9 @@ export function TicketDetailsModal({
                 <div className="flex items-center gap-2">
                   <Tag className="h-3.5 w-3.5 text-primary shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Type</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Type
+                    </p>
                     <p className="font-medium text-foreground">{ticket.issue_type_name}</p>
                   </div>
                 </div>
@@ -230,7 +266,9 @@ export function TicketDetailsModal({
                 <div className="flex items-center gap-2">
                   <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Location</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Location
+                    </p>
                     <p className="font-medium text-foreground truncate">{ticket.location}</p>
                   </div>
                 </div>
@@ -238,7 +276,9 @@ export function TicketDetailsModal({
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Reported</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Reported
+                    </p>
                     <p className="font-medium text-foreground">
                       {new Date(ticket.created_at).toLocaleDateString("en-GB", {
                         day: "numeric",
@@ -252,9 +292,14 @@ export function TicketDetailsModal({
                 <div className="flex items-center gap-2">
                   <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Reported By</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Reported By
+                    </p>
                     <p className="font-medium text-foreground">
-                      {ticket.created_by_name} <span className="text-muted-foreground capitalize">({ticket.created_by_role})</span>
+                      {ticket.created_by_name}{" "}
+                      <span className="text-muted-foreground capitalize">
+                        ({ticket.created_by_role})
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -263,8 +308,12 @@ export function TicketDetailsModal({
                   <div className="flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Target (TAT)</p>
-                      <p className={`font-medium ${overdue ? "text-destructive font-bold" : "text-foreground"}`}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Target (TAT)
+                      </p>
+                      <p
+                        className={`font-medium ${overdue ? "text-destructive font-bold" : "text-foreground"}`}
+                      >
                         {new Date(ticket.expected_by).toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "short",

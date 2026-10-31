@@ -9,20 +9,18 @@ const RESEND_SECONDS = 30;
 interface OTPVerificationProps {
   title: string;
   subtitle: string;
-  expectedCode?: string;
-  demoCode?: string;
+  expectedCode?: string | undefined;
   onVerified: (code: string) => Promise<boolean | string | void> | boolean | string | void;
   onResend: () => void;
   onBack: () => void;
   backLabel: string;
-  editDetails?: { label: string; onClick: () => void };
+  editDetails?: { label: string; onClick: () => void } | undefined;
 }
 
 export function OTPVerification({
   title,
   subtitle,
   expectedCode,
-  demoCode,
   onVerified,
   onResend,
   onBack,
@@ -86,16 +84,18 @@ export function OTPVerification({
       <div className="mt-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
         <KeyRound className="h-6 w-6 text-primary" />
       </div>
-      <h2 className="mt-4 font-display text-xl font-bold tracking-tight text-foreground">{title}</h2>
+      <h2 className="mt-4 font-display text-xl font-bold tracking-tight text-foreground">
+        {title}
+      </h2>
       <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
 
-      {demoCode && (
-        <div className="mt-5 flex gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Enter the 6-digit code provided on your team sheet or use simulated code{" "}
-            <span className="font-display font-semibold text-primary">{demoCode}</span>.
-          </p>
+      {expectedCode && (
+        <div className="mt-4 flex items-center justify-center gap-2.5 rounded-xl border border-dashed border-border bg-secondary/40 px-3 py-2.5">
+          <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Your verification code</span>
+          <span className="font-display text-sm font-bold tracking-[0.25em] text-primary">
+            {expectedCode}
+          </span>
         </div>
       )}
 
@@ -122,7 +122,12 @@ export function OTPVerification({
 
       {error && <p className="mt-3 text-center text-xs font-medium text-destructive">{error}</p>}
 
-      <Button type="button" className="mt-6 h-11 w-full" disabled={!canVerify} onClick={() => verify(code)}>
+      <Button
+        type="button"
+        className="mt-6 h-11 w-full"
+        disabled={!canVerify}
+        onClick={() => verify(code)}
+      >
         {verifying ? (
           <>
             <Loader2 className="animate-spin" /> Verifying…
