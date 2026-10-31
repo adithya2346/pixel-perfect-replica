@@ -45,13 +45,14 @@ import { ManageUsersModal } from "./manage-users-modal";
 import { ManageStaffModal } from "./manage-staff-modal";
 import { IssueStaffPanel } from "./issue-staff-panel";
 import { MyWorksView } from "./my-works-view";
+import { MyTicketsView } from "./my-tickets-view";
 import { ThemeSegmentedToggle, ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface FixItDashboardProps {
   role: DashboardRole;
 }
 
-type FilterTab = "ALL" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "OVERDUE" | "MY_TICKETS";
+type FilterTab = "ALL" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "OVERDUE";
 
 export function FixItDashboard({ role }: FixItDashboardProps) {
   const navigate = useNavigate();
@@ -105,8 +106,8 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   }
 
   const stats = useMemo(() => {
-    return computeFixItStats(tickets, currentUser.id);
-  }, [tickets, currentUser.id]);
+    return computeFixItStats(tickets, currentUser);
+  }, [tickets, currentUser]);
 
   const assignedWorksCount = useMemo(() => {
     return tickets.filter((t) => isTicketAssignedToUser(t, currentUser)).length;
@@ -121,12 +122,6 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
       if (activeTab === "RESOLVED" && t.status !== "RESOLVED" && t.status !== "ACKNOWLEDGED")
         return false;
       if (activeTab === "OVERDUE" && !overdue) return false;
-      if (activeTab === "MY_TICKETS") {
-        const isMine =
-          t.created_by.toLowerCase() === currentUser.id.toLowerCase() ||
-          t.created_by_name.toLowerCase().includes(currentUser.name.toLowerCase());
-        if (!isMine) return false;
-      }
 
       // Issue type filter
       if (selectedIssueType !== "ALL" && t.issue_type_id !== selectedIssueType) {
@@ -186,6 +181,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
   const SIDEBAR_ITEMS = [
     { id: "fixit", label: "FixIt", icon: Wrench },
+    { id: "my-tickets", label: "My Tickets", icon: TicketIcon, count: stats.myTickets },
     ...(isStaffOrFaculty || isCmOrAdmin
       ? [
           {
@@ -320,7 +316,17 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
           />
         )}
 
-        {activeNav !== "fixit" && activeNav !== "my-works" && (
+        {activeNav === "my-tickets" && (
+          <MyTicketsView
+            tickets={tickets}
+            currentUser={currentUser}
+            onOpenDetails={(t) => setDetailsTicket(t)}
+            onOpenRaise={() => setRaiseOpen(true)}
+            onRefresh={refreshTickets}
+          />
+        )}
+
+        {activeNav !== "fixit" && activeNav !== "my-works" && activeNav !== "my-tickets" && (
           <div className="flex min-h-[70vh] items-center justify-center">
             <div className="max-w-md space-y-3 rounded-2xl border border-border bg-card/40 p-8 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-secondary/70 text-muted-foreground">
@@ -544,7 +550,6 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                       { id: "IN_PROGRESS", label: "In Progress" },
                       { id: "RESOLVED", label: "Resolved" },
                       { id: "OVERDUE", label: "Overdue" },
-                      { id: "MY_TICKETS", label: "My Tickets" },
                     ] as const
                   ).map(({ id, label }) => (
                     <button
@@ -590,10 +595,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-sm font-semibold text-foreground uppercase tracking-wider">
-                  {activeTab === "MY_TICKETS"
-                    ? "My Reported Tickets"
-                    : "Campus Maintenance Tickets"}{" "}
-                  ({filteredTickets.length})
+                  Campus Maintenance Tickets ({filteredTickets.length})
                 </h2>
               </div>
 
