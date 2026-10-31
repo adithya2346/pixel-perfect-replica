@@ -16,7 +16,8 @@ export function ThemeToggle({
   size = "sm",
   showLabel = false,
 }: ThemeToggleProps) {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, mounted } = useTheme();
+  const effectiveDark = !mounted || isDark;
 
   return (
     <Button
@@ -24,30 +25,31 @@ export function ThemeToggle({
       variant={variant}
       size={size}
       onClick={toggleTheme}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={effectiveDark ? "Switch to light theme" : "Switch to dark theme"}
+      title={effectiveDark ? "Switch to light theme" : "Switch to dark theme"}
       className={cn(
         "relative transition-all duration-200 border-border bg-card/60 hover:bg-secondary/80 text-foreground",
         showLabel ? "gap-2 px-3 h-8 text-xs font-medium" : "h-8 w-8 p-0 rounded-xl",
         className
       )}
+      suppressHydrationWarning
     >
       <div className="relative flex items-center justify-center">
-        {isDark ? (
+        {effectiveDark ? (
           <Sun className="h-4 w-4 text-amber-400 transition-transform duration-300 hover:rotate-45" />
         ) : (
           <Moon className="h-4 w-4 text-cyan-600 transition-transform duration-300 hover:-rotate-12" />
         )}
       </div>
       {showLabel && (
-        <span className="text-xs">{isDark ? "Light Mode" : "Dark Mode"}</span>
+        <span className="text-xs">{effectiveDark ? "Light Mode" : "Dark Mode"}</span>
       )}
     </Button>
   );
 }
 
 export function ThemeSegmentedToggle({ className }: { className?: string }) {
-  const { isDark, setTheme } = useTheme();
+  const { isDark, setTheme, mounted } = useTheme();
 
   return (
     <div
@@ -57,13 +59,14 @@ export function ThemeSegmentedToggle({ className }: { className?: string }) {
       )}
       role="group"
       aria-label="Theme selection"
+      suppressHydrationWarning
     >
       <button
         type="button"
         onClick={() => setTheme("light")}
         className={cn(
           "flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all",
-          !isDark
+          mounted && !isDark
             ? "bg-primary text-primary-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
         )}
@@ -76,7 +79,7 @@ export function ThemeSegmentedToggle({ className }: { className?: string }) {
         onClick={() => setTheme("dark")}
         className={cn(
           "flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all",
-          isDark
+          !mounted || isDark
             ? "bg-primary text-primary-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
         )}

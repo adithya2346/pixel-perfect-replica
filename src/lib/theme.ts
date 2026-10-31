@@ -49,14 +49,16 @@ export function applyTheme(theme: Theme): void {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => getResolvedTheme());
+  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    // Initial sync
-    applyTheme(getStoredTheme());
-    setThemeState(getStoredTheme());
-    setResolvedTheme(getResolvedTheme(getStoredTheme()));
+    setMounted(true);
+    const initial = getStoredTheme();
+    applyTheme(initial);
+    setThemeState(initial);
+    setResolvedTheme(getResolvedTheme(initial));
 
     function handleStorage(e: StorageEvent) {
       if (e.key === STORAGE_KEY) {
@@ -108,6 +110,7 @@ export function useTheme() {
     setTheme,
     toggleTheme,
     isDark: resolvedTheme === "dark",
+    mounted,
   };
 }
 
