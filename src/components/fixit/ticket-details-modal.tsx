@@ -125,13 +125,13 @@ export function TicketDetailsModal({
     switch (ticket.status) {
       case "OPEN":
         return (
-          <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-400">
+          <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400">
             Open
           </Badge>
         );
       case "IN_PROGRESS":
         return (
-          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400">
+          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
             In Progress
           </Badge>
         );
@@ -139,7 +139,7 @@ export function TicketDetailsModal({
         return (
           <Badge
             variant="outline"
-            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           >
             Resolved
           </Badge>
@@ -148,7 +148,7 @@ export function TicketDetailsModal({
         return (
           <Badge
             variant="outline"
-            className="border-purple-500/40 bg-purple-500/10 text-purple-400"
+            className="border-purple-500/40 bg-purple-500/10 text-purple-600 dark:text-purple-400"
           >
             Acknowledged / Closed
           </Badge>

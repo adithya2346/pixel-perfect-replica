@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { useTheme } from "@/lib/theme";
 
 import appCss from "../styles.css?url";
 
@@ -111,10 +112,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+const THEME_SCRIPT = `
+(function(){
+  try {
+    var key = 'campusos-fixit:theme';
+    var theme = localStorage.getItem(key) || 'dark';
+    var isDark = theme === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : theme === 'dark';
+    var root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      root.style.colorScheme = 'light';
+    }
+  } catch(e) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
@@ -127,11 +153,17 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { resolvedTheme } = useTheme();
 
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        theme={resolvedTheme}
+      />
     </QueryClientProvider>
   );
 }

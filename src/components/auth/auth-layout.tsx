@@ -3,6 +3,7 @@ import { ClipboardCheck, ShieldCheck, Wrench, Zap } from "lucide-react";
 
 import authVisual from "@/assets/auth-visual.jpg";
 import { cn } from "@/lib/utils";
+import { ThemeSegmentedToggle, ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function BrandMark({ className }: { className?: string }) {
   return (
@@ -46,17 +47,18 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground lg:grid lg:min-h-screen lg:grid-cols-[1.05fr_1fr]">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200 lg:grid lg:min-h-screen lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
         <img
           src={authVisual}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover opacity-55"
+          className="absolute inset-0 h-full w-full object-cover opacity-50 dark:opacity-55"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/25" />
-        <div className="relative z-10 p-10">
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
+        <div className="relative z-10 p-10 flex items-center justify-between">
           <BrandMark />
+          <ThemeSegmentedToggle />
         </div>
         <div className="relative z-10 max-w-lg p-10 pb-14">
           <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
@@ -69,7 +71,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <ul className="mt-9 space-y-4">
             {PANEL_FEATURES.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3.5">
-                <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm">
                   <Icon className="h-4 w-4 text-primary" />
                 </span>
                 <span>
@@ -83,8 +85,13 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       </aside>
       <main className="flex min-h-screen flex-col px-4 py-8 sm:px-8 lg:min-h-0 lg:justify-center lg:py-10">
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
-          <div className="mb-8 lg:hidden">
-            <BrandMark />
+          <div className="mb-6 flex items-center justify-between">
+            <div className="lg:hidden">
+              <BrandMark />
+            </div>
+            <div className="ml-auto">
+              <ThemeToggle showLabel className="shadow-sm" />
+            </div>
           </div>
           {children}
         </div>

@@ -2,11 +2,13 @@
 @source "../src";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 /*
  * CampusOS – FixIt design system.
- * Dark navy / charcoal surfaces with cyan + blue accents, glassmorphism,
+ * Dual Theme Support:
+ * - Light Mode: Clean slate/zinc surfaces, crisp high-contrast text, vibrant cyan/blue accents
+ * - Dark Mode: Deep navy / charcoal surfaces with cyan + blue accents, glassmorphism
  * Space Grotesk display type and Inter body type. All colors in oklch.
  */
 
@@ -55,8 +57,48 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
+:root,
+.light {
   --radius: 0.75rem;
+  --background: oklch(0.985 0.005 240);
+  --foreground: oklch(0.18 0.035 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.035 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.035 265);
+  --primary: oklch(0.55 0.2 245);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.012 245);
+  --secondary-foreground: oklch(0.2 0.035 265);
+  --muted: oklch(0.94 0.012 245);
+  --muted-foreground: oklch(0.48 0.025 255);
+  --accent: oklch(0.55 0.18 262);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.62 0.17 155);
+  --border: oklch(0.88 0.012 245);
+  --input: oklch(0.88 0.012 245);
+  --ring: oklch(0.55 0.2 245);
+  --glass-bg: oklch(1 0 0 / 75%);
+  --glass-border: oklch(0 0 0 / 8%);
+  --glow: oklch(0.55 0.2 245 / 25%);
+  --chart-1: oklch(0.55 0.2 245);
+  --chart-2: oklch(0.55 0.18 262);
+  --chart-3: oklch(0.62 0.17 155);
+  --chart-4: oklch(0.75 0.16 85);
+  --chart-5: oklch(0.58 0.22 25);
+  --sidebar: oklch(0.975 0.008 245);
+  --sidebar-foreground: oklch(0.18 0.035 265);
+  --sidebar-primary: oklch(0.55 0.2 245);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.92 0.015 245);
+  --sidebar-accent-foreground: oklch(0.18 0.035 265);
+  --sidebar-border: oklch(0.88 0.012 245);
+  --sidebar-ring: oklch(0.55 0.2 245);
+}
+
+.dark {
   --background: oklch(0.145 0.03 265);
   --foreground: oklch(0.955 0.01 240);
   --card: oklch(0.185 0.032 264);
@@ -93,29 +135,6 @@
   --sidebar-accent-foreground: oklch(0.955 0.01 240);
   --sidebar-border: oklch(1 0 0 / 9%);
   --sidebar-ring: oklch(0.8 0.13 217);
-}
-
-.dark {
-  --background: oklch(0.145 0.03 265);
-  --foreground: oklch(0.955 0.01 240);
-  --card: oklch(0.185 0.032 264);
-  --card-foreground: oklch(0.955 0.01 240);
-  --popover: oklch(0.17 0.03 264);
-  --popover-foreground: oklch(0.955 0.01 240);
-  --primary: oklch(0.8 0.13 217);
-  --primary-foreground: oklch(0.16 0.04 265);
-  --secondary: oklch(0.25 0.038 262);
-  --secondary-foreground: oklch(0.92 0.02 245);
-  --muted: oklch(0.24 0.035 262);
-  --muted-foreground: oklch(0.66 0.035 255);
-  --accent: oklch(0.52 0.17 262);
-  --accent-foreground: oklch(0.96 0.01 240);
-  --destructive: oklch(0.62 0.21 25);
-  --destructive-foreground: oklch(0.98 0.003 247.858);
-  --success: oklch(0.75 0.15 162);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.8 0.13 217);
 }
 
 @utility glass {
@@ -162,6 +181,24 @@
     background-image:
       radial-gradient(
         60rem 40rem at 110% -10%,
+        oklch(0.52 0.17 262 / 0.07),
+        transparent 60%
+      ),
+      radial-gradient(
+        50rem 36rem at -10% 110%,
+        oklch(0.55 0.2 245 / 0.06),
+        transparent 60%
+      );
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(
+        60rem 40rem at 110% -10%,
         oklch(0.52 0.17 262 / 0.14),
         transparent 60%
       ),
@@ -170,8 +207,5 @@
         oklch(0.8 0.13 217 / 0.09),
         transparent 60%
       );
-    background-attachment: fixed;
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
   }
 }
