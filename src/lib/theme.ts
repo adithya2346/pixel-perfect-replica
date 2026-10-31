@@ -110,3 +110,4 @@ export function useTheme() {
     isDark: resolvedTheme === "dark",
   };
 }
+

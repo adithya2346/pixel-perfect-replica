@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertCircle,
+  Briefcase,
   Calendar,
   CheckCircle2,
   Clock,
@@ -8,9 +9,12 @@ import {
   Edit2,
   ExternalLink,
   MapPin,
+  ShieldCheck,
   Tag,
   Trash2,
   User,
+  UserCheck,
+  Users,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,11 +33,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   acknowledgeTicket,
+  assignTicketToStaff,
   deleteTicket,
   isTicketOverdue,
+  unassignTicket,
   updateTicket,
   type Ticket,
 } from "@/lib/fixit-store";
+import { getRegisteredUsers } from "@/lib/mock-auth";
 
 interface TicketDetailsModalProps {
   ticket: Ticket | null;
@@ -57,6 +64,34 @@ export function TicketDetailsModal({
   const [editDesc, setEditDesc] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editPhoto, setEditPhoto] = useState<string | undefined>(undefined);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
+
+  // Potential assignees from registered users + staff directory
+  const assignees = useMemo(() => {
+    const reg = getRegisteredUsers().filter(
+      (u) => u.role === "office_staff" || u.role === "faculty",
+    );
+    const defaults = [
+      { id: "STF-2024-41", name: "Ravi Shetty", role: "office_staff", label: "Ravi Shetty (Office Staff - Maintenance)" },
+      { id: "1RV18CS042", name: "Dr. Priya Raman", role: "faculty", label: "Dr. Priya Raman (Faculty - IT & CS)" },
+      { id: "stf-elec-1", name: "Ramesh Kumar", role: "office_staff", label: "Ramesh Kumar (Staff - Electrician)" },
+      { id: "stf-plmb-1", name: "Mahesh Patil", role: "office_staff", label: "Mahesh Patil (Staff - Plumber)" },
+      { id: "stf-furn-1", name: "Imran Sheikh", role: "office_staff", label: "Imran Sheikh (Staff - Carpenter)" },
+      { id: "stf-net-1", name: "Vikram Menon", role: "office_staff", label: "Vikram Menon (Staff - Network Engineer)" },
+    ];
+    const list = [...defaults];
+    for (const u of reg) {
+      if (!list.some((item) => item.id === u.usn || item.name.toLowerCase() === u.fullName.toLowerCase())) {
+        list.push({
+          id: u.usn,
+          name: u.fullName,
+          role: u.role,
+          label: `${u.fullName} (${u.role === "office_staff" ? "Office Staff" : "Faculty"})`,
+        });
+      }
+    }
+    return list;
+  }, []);
 
   if (!ticket) return null;
 
@@ -75,6 +110,27 @@ export function TicketDetailsModal({
     setEditLocation(ticket.location);
     setEditPhoto(ticket.photo_url);
     setEditing(true);
+  };
+
+  const handleAssign = () => {
+    if (!ticket || !selectedAssigneeId) return;
+    const assignee = assignees.find((a) => a.id === selectedAssigneeId);
+    if (!assignee) return;
+    assignTicketToStaff(ticket.id, {
+      id: assignee.id,
+      name: assignee.name,
+      role: assignee.role,
+      assignedBy: currentUser.name || "Admin",
+    });
+    toast.success(`Assigned ticket ${ticket.id} to ${assignee.name}.`);
+    onTicketUpdated();
+  };
+
+  const handleUnassign = () => {
+    if (!ticket) return;
+    unassignTicket(ticket.id);
+    toast.info(`Ticket ${ticket.id} unassigned.`);
+    onTicketUpdated();
   };
 
   const handleSaveEdit = () => {
@@ -304,6 +360,27 @@ export function TicketDetailsModal({
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Assigned To
+                    </p>
+                    <p className="font-medium text-foreground truncate">
+                      {ticket.assigned_to_name ? (
+                        <>
+                          {ticket.assigned_to_name}{" "}
+                          <span className="text-muted-foreground capitalize">
+                            ({ticket.assigned_to_role || "Staff"})
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
                 {ticket.expected_by && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
@@ -335,6 +412,71 @@ export function TicketDetailsModal({
                 {ticket.description}
               </div>
             </div>
+
+            {/* Admin Work Assignment Section */}
+            {isCmOrAdmin && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground">
+                      Admin Work Assignment
+                    </span>
+                  </div>
+                  {ticket.assigned_to_name && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleUnassign}
+                      className="h-6 text-[10px] text-destructive hover:bg-destructive/10"
+                    >
+                      Remove Assignment
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <select
+                    value={selectedAssigneeId}
+                    onChange={(e) => setSelectedAssigneeId(e.target.value)}
+                    className="flex-1 h-8 rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="">
+                      {ticket.assigned_to_name
+                        ? `Assigned: ${ticket.assigned_to_name} (Select to change)`
+                        : "Select staff or faculty member..."}
+                    </option>
+                    {assignees.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!selectedAssigneeId}
+                    onClick={handleAssign}
+                    className="h-8 text-xs font-semibold gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shrink-0"
+                  >
+                    <UserCheck className="h-3.5 w-3.5" />
+                    {ticket.assigned_to_name ? "Reassign Work" : "Assign to Work"}
+                  </Button>
+                </div>
+
+                {ticket.assigned_to_name && (
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <User className="h-3 w-3 text-primary" />
+                    Currently assigned to{" "}
+                    <strong className="text-foreground">{ticket.assigned_to_name}</strong>{" "}
+                    ({ticket.assigned_to_role || "Staff"}) by {ticket.assigned_by || "Admin"}.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Resolution Note if resolved */}
             {ticket.resolution_note && (

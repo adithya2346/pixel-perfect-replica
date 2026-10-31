@@ -33,6 +33,11 @@ export interface Ticket {
   resolution_note?: string | undefined;
   resolved_at?: string | undefined;
   acknowledged_at?: string | undefined;
+  assigned_to?: string | undefined;
+  assigned_to_name?: string | undefined;
+  assigned_to_role?: "office_staff" | "faculty" | string | undefined;
+  assigned_by?: string | undefined;
+  assigned_at?: string | undefined;
 }
 
 /** Shape of an issue-type item returned by the FixIt backend (fields may vary). */
@@ -124,6 +129,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-3),
     expected_by: daysFromNow(2),
+    assigned_to: "STF-2024-41",
+    assigned_to_name: "Ravi Shetty",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-2),
   },
   {
     id: "TK-1002",
@@ -138,6 +148,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-2),
     expected_by: daysFromNow(1),
+    assigned_to: "STF-2024-41",
+    assigned_to_name: "Ravi Shetty",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-2),
   },
   {
     id: "TK-1003",
@@ -152,6 +167,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-4),
     expected_by: daysFromNow(-1),
+    assigned_to: "stf-elec-1",
+    assigned_to_name: "Ramesh Kumar",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-3),
   },
 
   // ── Plumbing ────────────────────────────────────────────────────────────
@@ -168,6 +188,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-2),
     expected_by: daysFromNow(1),
+    assigned_to: "STF-2024-41",
+    assigned_to_name: "Ravi Shetty",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-1),
   },
   {
     id: "TK-1005",
@@ -182,6 +207,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-1),
     expected_by: daysFromNow(3),
+    assigned_to: "STF-2024-41",
+    assigned_to_name: "Ravi Shetty",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-1),
   },
   {
     id: "TK-1006",
@@ -198,6 +228,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     expected_by: daysFromNow(-2),
     resolution_note: "Replaced the flush valve assembly and tested. Working normally.",
     resolved_at: daysFromNow(-3),
+    assigned_to: "stf-plmb-1",
+    assigned_to_name: "Mahesh Patil",
+    assigned_to_role: "office_staff",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-5),
   },
 
   // ── Furniture ───────────────────────────────────────────────────────────
@@ -228,6 +263,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-1),
     expected_by: daysFromNow(1),
+    assigned_to: "1RV18CS042",
+    assigned_to_name: "Dr. Priya Raman",
+    assigned_to_role: "faculty",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-1),
   },
   {
     id: "TK-1009",
@@ -260,6 +300,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-1),
     expected_by: daysFromNow(1),
+    assigned_to: "1RV18CS042",
+    assigned_to_name: "Dr. Priya Raman",
+    assigned_to_role: "faculty",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-1),
   },
   {
     id: "TK-1011",
@@ -274,6 +319,11 @@ export const DEFAULT_TICKETS: Ticket[] = [
     created_by_role: "student",
     created_at: daysFromNow(-5),
     expected_by: daysFromNow(-1),
+    assigned_to: "1RV18CS042",
+    assigned_to_name: "Dr. Priya Raman",
+    assigned_to_role: "faculty",
+    assigned_by: "Team 41 Admin",
+    assigned_at: daysFromNow(-4),
   },
   {
     id: "TK-1012",
@@ -409,7 +459,7 @@ export function deleteIssueType(id: string): boolean {
 }
 
 /** Bump this to merge a new batch of demo tickets into existing browsers. */
-const DEMO_SEED_VERSION = 2;
+const DEMO_SEED_VERSION = 3;
 
 export function getTickets(): Ticket[] {
   const stored = readJson<Ticket[] | null>(STORAGE_TICKETS_KEY, null);
@@ -422,10 +472,25 @@ export function getTickets(): Ticket[] {
   }
 
   if (version < DEMO_SEED_VERSION) {
-    // Add any demo ticket the store does not already have, leaving the user's
-    // own tickets untouched. Bumping the version re-runs this merge once.
-    const existingIds = new Set(stored.map((ticket) => ticket.id));
-    const merged = [...stored, ...DEFAULT_TICKETS.filter((ticket) => !existingIds.has(ticket.id))];
+    // Add any demo ticket the store does not already have, and backfill assignments
+    const defaultById = new Map(DEFAULT_TICKETS.map((t) => [t.id, t]));
+    const updated = stored.map((ticket) => {
+      const def = defaultById.get(ticket.id);
+      if (def && !ticket.assigned_to && def.assigned_to) {
+        return {
+          ...ticket,
+          assigned_to: def.assigned_to,
+          assigned_to_name: def.assigned_to_name,
+          assigned_to_role: def.assigned_to_role,
+          assigned_by: def.assigned_by,
+          assigned_at: def.assigned_at,
+        };
+      }
+      return ticket;
+    });
+
+    const existingIds = new Set(updated.map((ticket) => ticket.id));
+    const merged = [...updated, ...DEFAULT_TICKETS.filter((ticket) => !existingIds.has(ticket.id))];
     writeJson(STORAGE_SEEDED_KEY, DEMO_SEED_VERSION);
     writeJson(STORAGE_TICKETS_KEY, merged);
     return merged;
@@ -470,6 +535,11 @@ export async function syncTicketsFromBackend(): Promise<Ticket[]> {
           resolution_note: item.resolution_note ?? local?.resolution_note,
           resolved_at: item.resolved_at ?? local?.resolved_at,
           acknowledged_at: item.acknowledged_at ?? local?.acknowledged_at,
+          assigned_to: local?.assigned_to,
+          assigned_to_name: local?.assigned_to_name,
+          assigned_to_role: local?.assigned_to_role,
+          assigned_by: local?.assigned_by,
+          assigned_at: local?.assigned_at,
         };
       });
 
@@ -676,4 +746,140 @@ export function computeFixItStats(tickets: Ticket[], currentUserId?: string | nu
     : tickets.length;
 
   return { total, open, resolved, inProgress, overdue, myTickets };
+}
+
+export function assignTicketToStaff(
+  id: string,
+  assignee: {
+    id: string;
+    name: string;
+    role: string;
+    assignedBy?: string;
+  },
+): Ticket | null {
+  const tickets = getTickets();
+  const idx = tickets.findIndex((t) => t.id === id);
+  const current = tickets[idx];
+  if (idx === -1 || !current) return null;
+
+  const updated: Ticket = {
+    ...current,
+    assigned_to: assignee.id,
+    assigned_to_name: assignee.name,
+    assigned_to_role: assignee.role,
+    assigned_by: assignee.assignedBy || "Campus Admin",
+    assigned_at: new Date().toISOString(),
+    status: current.status === "OPEN" ? "IN_PROGRESS" : current.status,
+  };
+
+  tickets[idx] = updated;
+  saveTickets(tickets);
+  return updated;
+}
+
+export function unassignTicket(id: string): Ticket | null {
+  const tickets = getTickets();
+  const idx = tickets.findIndex((t) => t.id === id);
+  const current = tickets[idx];
+  if (idx === -1 || !current) return null;
+
+  const updated: Ticket = {
+    ...current,
+    assigned_to: undefined,
+    assigned_to_name: undefined,
+    assigned_to_role: undefined,
+    assigned_by: undefined,
+    assigned_at: undefined,
+  };
+
+  tickets[idx] = updated;
+  saveTickets(tickets);
+  return updated;
+}
+
+export function isTicketAssignedToUser(
+  ticket: Ticket,
+  user?: {
+    id?: string | null;
+    name?: string | null;
+    role?: string | null;
+    usn?: string | null;
+  } | null,
+): boolean {
+  if (!user) return false;
+  const uid = (user.id || "").toLowerCase().trim();
+  const usn = (user.usn || "").toLowerCase().trim();
+  const uname = (user.name || "").toLowerCase().trim();
+  const urole = (user.role || "").toLowerCase().trim();
+
+  // 1. Direct match on assigned_to ID/USN
+  if (ticket.assigned_to) {
+    const assignedTo = ticket.assigned_to.toLowerCase().trim();
+    if (
+      (uid && (assignedTo === uid || assignedTo.includes(uid))) ||
+      (usn && (assignedTo === usn || assignedTo.includes(usn)))
+    ) {
+      return true;
+    }
+  }
+
+  // 2. Direct match on assigned_to_name
+  if (ticket.assigned_to_name && uname) {
+    const assignedName = ticket.assigned_to_name.toLowerCase().trim();
+    if (
+      assignedName === uname ||
+      assignedName.includes(uname) ||
+      uname.includes(assignedName)
+    ) {
+      return true;
+    }
+  }
+
+  // 3. Trade / role match for logged-in staff and faculty
+  if (urole === "office_staff" && ticket.assigned_to_role === "office_staff") {
+    // If assigned to staff without a person or to demo staff
+    if (
+      !ticket.assigned_to ||
+      ticket.assigned_to === "STF-2024-41" ||
+      uname.includes("ravi") ||
+      uname.includes("staff")
+    ) {
+      return true;
+    }
+  }
+
+  if (urole === "faculty" && ticket.assigned_to_role === "faculty") {
+    // If assigned to faculty without a person or to demo faculty
+    if (
+      !ticket.assigned_to ||
+      ticket.assigned_to === "1RV18CS042" ||
+      uname.includes("priya") ||
+      uname.includes("faculty")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function computeAssignedStats(
+  tickets: Ticket[],
+  user?: {
+    id?: string | null;
+    name?: string | null;
+    role?: string | null;
+    usn?: string | null;
+  } | null,
+) {
+  const assigned = tickets.filter((t) => isTicketAssignedToUser(t, user));
+  const total = assigned.length;
+  const inProgress = assigned.filter((t) => t.status === "IN_PROGRESS").length;
+  const open = assigned.filter((t) => t.status === "OPEN").length;
+  const resolved = assigned.filter(
+    (t) => t.status === "RESOLVED" || t.status === "ACKNOWLEDGED",
+  ).length;
+  const overdue = assigned.filter(isTicketOverdue).length;
+
+  return { total, inProgress, open, resolved, overdue, assignedTickets: assigned };
 }

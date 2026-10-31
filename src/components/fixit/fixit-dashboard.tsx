@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
+  Briefcase,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -29,6 +30,7 @@ import {
   computeFixItStats,
   getIssueTypes,
   getTickets,
+  isTicketAssignedToUser,
   isTicketOverdue,
   syncIssueTypesFromBackend,
   syncTicketsFromBackend,
@@ -42,6 +44,7 @@ import { IssueTypesModal } from "./issue-types-modal";
 import { ManageUsersModal } from "./manage-users-modal";
 import { ManageStaffModal } from "./manage-staff-modal";
 import { IssueStaffPanel } from "./issue-staff-panel";
+import { MyWorksView } from "./my-works-view";
 import { ThemeSegmentedToggle, ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface FixItDashboardProps {
@@ -78,6 +81,7 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   }, [session, role]);
 
   const isCmOrAdmin = currentUser.role === "admin";
+  const isStaffOrFaculty = currentUser.role === "office_staff" || currentUser.role === "faculty";
   const issueTypes = getIssueTypes();
 
   // Sync with live backend on mount
@@ -103,6 +107,10 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
   const stats = useMemo(() => {
     return computeFixItStats(tickets, currentUser.id);
   }, [tickets, currentUser.id]);
+
+  const assignedWorksCount = useMemo(() => {
+    return tickets.filter((t) => isTicketAssignedToUser(t, currentUser)).length;
+  }, [tickets, currentUser]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
@@ -178,8 +186,18 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
   const SIDEBAR_ITEMS = [
     { id: "fixit", label: "FixIt", icon: Wrench },
+    ...(isStaffOrFaculty || isCmOrAdmin
+      ? [
+          {
+            id: "my-works",
+            label: "My Works",
+            icon: Briefcase,
+            count: assignedWorksCount,
+          },
+        ]
+      : []),
     { id: "profile", label: "Profile", icon: User },
-  ] as const;
+  ];
 
   const activeNavItem = SIDEBAR_ITEMS.find((item) => item.id === activeNav) ?? SIDEBAR_ITEMS[0];
   const ActiveNavIcon = activeNavItem.icon;
@@ -197,8 +215,10 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
           {/* Navigation Links */}
           <nav className="p-3 space-y-1">
-            {SIDEBAR_ITEMS.map(({ id, label, icon: Icon }) => {
+            {SIDEBAR_ITEMS.map((item) => {
+              const { id, label, icon: Icon } = item;
               const isActive = activeNav === id;
+              const count = "count" in item ? item.count : undefined;
               return (
                 <button
                   key={id}
@@ -214,7 +234,18 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                     className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`}
                   />
                   <span>{label}</span>
-                  {isActive && (
+                  {count !== undefined && count > 0 && (
+                    <span
+                      className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-primary/15 text-primary"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {isActive && (count === undefined || count === 0) && (
                     <span className="ml-auto rounded-full bg-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary uppercase">
                       Active
                     </span>
@@ -279,7 +310,17 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
       {/* ────────────────────── Main Content Area ────────────────────── */}
       <main className="flex-1 overflow-y-auto max-h-screen p-4 sm:p-6 lg:p-8 space-y-6">
-        {activeNav !== "fixit" && (
+        {activeNav === "my-works" && (
+          <MyWorksView
+            tickets={tickets}
+            currentUser={currentUser}
+            onOpenDetails={(t) => setDetailsTicket(t)}
+            onOpenStatusModal={(t) => setStatusTicket(t)}
+            onRefresh={refreshTickets}
+          />
+        )}
+
+        {activeNav !== "fixit" && activeNav !== "my-works" && (
           <div className="flex min-h-[70vh] items-center justify-center">
             <div className="max-w-md space-y-3 rounded-2xl border border-border bg-card/40 p-8 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-secondary/70 text-muted-foreground">
@@ -306,6 +347,32 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
 
         {activeNav === "fixit" && (
           <>
+            {/* Staff / Faculty Assigned Works Quick Banner */}
+            {isStaffOrFaculty && assignedWorksCount > 0 && (
+              <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_-10px_var(--glow)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                    <Briefcase className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      You have {assignedWorksCount} work order{assignedWorksCount === 1 ? "" : "s"} assigned by admin
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Track and update the status of your assigned tasks in the My Works portal.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveNav("my-works")}
+                  className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+                >
+                  <Briefcase className="h-3.5 w-3.5" /> Open My Works
+                </Button>
+              </div>
+            )}
+
             {/* Top Header / Welcome Row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
