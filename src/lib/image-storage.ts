@@ -66,3 +66,4 @@ export async function getPhotoFromIdb(ticketId: string): Promise<string | null> 
     }
   });
 }
+

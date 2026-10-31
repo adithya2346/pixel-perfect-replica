@@ -640,6 +640,9 @@ export function FixItDashboard({ role }: FixItDashboardProps) {
                             <img
                               src={ticket.photo_url}
                               alt=""
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
                               className="h-12 w-12 rounded-xl object-cover border border-border shrink-0"
                             />
                           ) : (

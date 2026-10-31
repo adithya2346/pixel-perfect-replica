@@ -254,6 +254,7 @@ export function RaiseTicketModal({
                 <img
                   src={photoUrl}
                   alt="Attachment preview"
+                  onError={() => setPhotoUrl("")}
                   className="h-16 w-20 object-cover rounded-lg border border-border"
                 />
                 <div className="flex-1 min-w-0">

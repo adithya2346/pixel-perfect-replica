@@ -7,21 +7,16 @@
 
 export async function compressImage(
   input: File | string,
-  maxWidth = 1000,
-  maxHeight = 1000,
-  quality = 0.72,
+  maxWidth = 800,
+  maxHeight = 800,
+  quality = 0.65,
 ): Promise<string> {
   if (typeof window === "undefined") {
     return typeof input === "string" ? input : "";
   }
 
-  // If already a web URL (e.g. Unsplash, CDN), no need to compress
+  // If already a remote web URL (e.g. Unsplash, CDN), return as is
   if (typeof input === "string" && (input.startsWith("http://") || input.startsWith("https://"))) {
-    return input;
-  }
-
-  // If already a small data URL (< 60KB), return as is
-  if (typeof input === "string" && input.startsWith("data:") && input.length < 60000) {
     return input;
   }
 
@@ -86,3 +81,4 @@ export async function compressImage(
     }
   });
 }
+

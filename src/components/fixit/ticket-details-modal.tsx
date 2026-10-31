@@ -511,6 +511,9 @@ export function TicketDetailsModal({
                   <img
                     src={ticket.photo_url}
                     alt={ticket.title}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
                     className="max-h-64 object-contain w-auto rounded-lg"
                   />
                   <a
