@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createTicket, getIssueTypes, type Ticket } from "@/lib/fixit-store";
+import { compressImage } from "@/lib/image-compress";
 
 interface RaiseTicketModalProps {
   open: boolean;
@@ -63,18 +64,29 @@ export function RaiseTicketModal({
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [optimizingPhoto, setOptimizingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<TicketFormErrors>({});
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoUrl(reader.result as string);
-        toast.success("Photo attached successfully");
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image file is too large (max 20MB). Please select another image.");
+      return;
+    }
+
+    setOptimizingPhoto(true);
+    try {
+      const compressed = await compressImage(file, 900, 900, 0.70);
+      setPhotoUrl(compressed);
+      const sizeKb = Math.round((compressed.length * 0.75) / 1024);
+      toast.success(`Photo attached & optimized (${sizeKb} KB)`);
+    } catch {
+      toast.error("Could not process photo. Please choose another image.");
+    } finally {
+      setOptimizingPhoto(false);
     }
   }
 
@@ -224,10 +236,20 @@ export function RaiseTicketModal({
           <div className="space-y-2">
             <Label className="text-xs font-semibold flex items-center justify-between">
               <span>Upload Photo (Optional)</span>
-              <span className="text-[10px] text-muted-foreground">JPG, PNG up to 5MB</span>
+              <span className="text-[10px] text-muted-foreground">Auto-compressed JPG, PNG</span>
             </Label>
 
-            {photoUrl ? (
+            {optimizingPhoto ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-primary/40 bg-secondary/30 p-6 space-y-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-xs font-medium text-foreground">
+                  Optimizing photo for storage...
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Compressing dimensions & file size
+                </span>
+              </div>
+            ) : photoUrl ? (
               <div className="relative rounded-xl border border-border overflow-hidden bg-secondary/30 p-2 flex items-center gap-3">
                 <img
                   src={photoUrl}
@@ -235,9 +257,14 @@ export function RaiseTicketModal({
                   className="h-16 w-20 object-cover rounded-lg border border-border"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">Photo attached</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium truncate">Photo attached</p>
+                    <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[9px] font-bold text-emerald-500">
+                      Optimized
+                    </span>
+                  </div>
                   <p className="text-[10px] text-muted-foreground">
-                    Will be visible to Campus Maintenance technicians
+                    Stored in lightweight format for technicians
                   </p>
                 </div>
                 <Button

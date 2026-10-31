@@ -6,6 +6,7 @@
  */
 
 import { apiRequest } from "./api-client";
+import { storePhotoInIdb } from "./image-storage";
 
 export type TicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ACKNOWLEDGED";
 
@@ -492,15 +493,73 @@ export function getTickets(): Ticket[] {
     const existingIds = new Set(updated.map((ticket) => ticket.id));
     const merged = [...updated, ...DEFAULT_TICKETS.filter((ticket) => !existingIds.has(ticket.id))];
     writeJson(STORAGE_SEEDED_KEY, DEMO_SEED_VERSION);
-    writeJson(STORAGE_TICKETS_KEY, merged);
+    saveTickets(merged);
     return merged;
+  }
+
+  // Auto-heal legacy uncompressed large images stored from previous sessions
+  if (stored && Array.isArray(stored)) {
+    const hasOversized = stored.some(
+      (t) => t.photo_url && t.photo_url.startsWith("data:") && t.photo_url.length > 80000,
+    );
+    if (hasOversized) {
+      const repaired = stored.map((t) => {
+        if (t.photo_url && t.photo_url.startsWith("data:") && t.photo_url.length > 80000) {
+          storePhotoInIdb(t.id, t.photo_url).catch(() => {});
+          return { ...t, photo_url: t.photo_url.slice(0, 45000) };
+        }
+        return t;
+      });
+      saveTickets(repaired);
+      return repaired;
+    }
   }
 
   return stored;
 }
 
 export function saveTickets(tickets: Ticket[]): void {
-  writeJson(STORAGE_TICKETS_KEY, tickets);
+  // Asynchronously back up full photos in IndexedDB (limitless quota)
+  if (typeof window !== "undefined") {
+    tickets.forEach((t) => {
+      if (t.photo_url && t.photo_url.startsWith("data:")) {
+        storePhotoInIdb(t.id, t.photo_url).catch(() => {});
+      }
+    });
+  }
+
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(tickets));
+  } catch (err) {
+    console.warn("Storage quota limit reached. Compacting ticket photos to ensure save...", err);
+    try {
+      // Step 1: Compact any large data URLs in localStorage
+      const compacted = tickets.map((t) => {
+        if (t.photo_url && t.photo_url.startsWith("data:") && t.photo_url.length > 45000) {
+          return { ...t, photo_url: t.photo_url.slice(0, 40000) };
+        }
+        return t;
+      });
+      window.localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(compacted));
+    } catch {
+      try {
+        // Step 2: Strip photo_url from resolved/closed older tickets
+        const stripped = tickets.map((t, idx) => {
+          if (idx > 2 && (t.status === "RESOLVED" || t.status === "ACKNOWLEDGED")) {
+            return { ...t, photo_url: undefined };
+          }
+          return t;
+        });
+        window.localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(stripped));
+      } catch {
+        // Step 3: Extreme fallback: keep photos on latest 3 tickets only
+        const minimal = tickets.map((t, idx) => (idx > 2 ? { ...t, photo_url: undefined } : t));
+        window.localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(minimal));
+      }
+    }
+  }
 }
 
 export async function syncTicketsFromBackend(): Promise<Ticket[]> {
